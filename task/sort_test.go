@@ -9,33 +9,33 @@ func TestToposort(t *testing.T) {
 
 	t.Run("Should sort correctly", func(t *testing.T) {
 		g := []*graphNode{
-			&graphNode{
+			{
 				task:  dummyTask("5"),
 				edges: []string{"11"},
 			},
-			&graphNode{
+			{
 				task:  dummyTask("7"),
 				edges: []string{"11", "8"},
 			},
-			&graphNode{
+			{
 				task:  dummyTask("3"),
 				edges: []string{"8", "10"},
 			},
-			&graphNode{
+			{
 				task:  dummyTask("11"),
 				edges: []string{"2", "9", "10"},
 			},
-			&graphNode{
+			{
 				task:  dummyTask("8"),
 				edges: []string{"9"},
 			},
-			&graphNode{
+			{
 				task: dummyTask("2"),
 			},
-			&graphNode{
+			{
 				task: dummyTask("9"),
 			},
-			&graphNode{
+			{
 				task: dummyTask("10"),
 			},
 		}
@@ -51,15 +51,15 @@ func TestToposort(t *testing.T) {
 	})
 	t.Run("Should error on a cycle", func(t *testing.T) {
 		g := []*graphNode{
-			&graphNode{
+			{
 				task:  dummyTask("7"),
 				edges: []string{"11"},
 			},
-			&graphNode{
+			{
 				task:  dummyTask("11"),
 				edges: []string{"10"},
 			},
-			&graphNode{
+			{
 				task:  dummyTask("10"),
 				edges: []string{"7"},
 			},

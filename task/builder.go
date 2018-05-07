@@ -1,14 +1,9 @@
 package task
 
-import "fmt"
-
 // build begins building a task.
 func build(name string) *Builder {
 	task := &declaredTask{
 		name: name,
-		execute: func(*Context) error {
-			return fmt.Errorf("no executor defined")
-		},
 	}
 	return &Builder{task: task}
 }
@@ -31,15 +26,21 @@ func (b *Builder) DependsOn(names ...string) *Builder {
 }
 
 // Do declares the executor when this task runs.
-func (b *Builder) Do(execute func(*Context) error) {
-	b.task.execute = execute
+func (b *Builder) Do(executor Executor) {
+	b.task.executor = executor
+}
+
+// Hide the task from the task list.
+func (b *Builder) Hide() {
+	b.task.hidden = true
 }
 
 type declaredTask struct {
 	name         string
 	description  string
 	dependencies []string
-	execute      func(*Context) error
+	executor     Executor
+	hidden       bool
 }
 
 func (t *declaredTask) Dependencies() []string {
@@ -48,8 +49,11 @@ func (t *declaredTask) Dependencies() []string {
 func (t *declaredTask) Description() string {
 	return t.description
 }
-func (t *declaredTask) Execute(ctx *Context) error {
-	return t.execute(ctx)
+func (t *declaredTask) Hidden() bool {
+	return t.hidden
+}
+func (t *declaredTask) Executor() Executor {
+	return t.executor
 }
 func (t *declaredTask) Name() string {
 	return t.name

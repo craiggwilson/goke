@@ -8,7 +8,7 @@ import (
 )
 
 // Command wraps exec.Command in a task executor.
-func Command(name string, args ...string) func(*task.Context) error {
+func Command(name string, args ...string) task.Executor {
 	return func(ctx *task.Context) error {
 		cmd := exec.Command(name, args...)
 
@@ -17,7 +17,8 @@ func Command(name string, args ...string) func(*task.Context) error {
 		if !ctx.DryRun {
 			cmd.Stdout = ctx.Writer()
 			cmd.Stderr = ctx.Writer()
-			return cmd.Run()
+			cmd.Start()
+			return cmd.Wait()
 		}
 
 		return nil

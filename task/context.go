@@ -7,8 +7,8 @@ import (
 
 // Context holds information relevent to executing tasks.
 type Context struct {
-	DryRun   bool
-	AllTasks []Task
+	DryRun  bool
+	Verbose bool
 
 	w io.Writer
 }

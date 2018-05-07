@@ -4,6 +4,7 @@ package task
 type Task interface {
 	Dependencies() []string
 	Description() string
-	Execute(*Context) error
+	Executor() Executor
+	Hidden() bool
 	Name() string
 }

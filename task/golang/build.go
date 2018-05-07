@@ -5,14 +5,27 @@ import (
 	"github.com/craiggwilson/goke/task/command"
 )
 
-// GoBuild represents the arguments to the go build command.
-type GoBuild struct {
-	Packages []string
+// BuildOptions represents the arguments to the go build command.
+type BuildOptions struct {
+	Paths   []string
+	Verbose bool
+	Flags   []string
+	Output  string
 }
 
 // Build returns a function that runs go build.
-func Build(build *GoBuild) func(*task.Context) error {
-	args := []string{"build"}
-	args = append(args, build.Packages...)
+func Build(opts *BuildOptions) task.Executor {
+	args := []string{}
+	args = append(args, "build")
+	if opts.Verbose {
+		args = append(args, "-v")
+	}
+	if len(opts.Flags) > 0 {
+		args = append(args, opts.Flags...)
+	}
+	if opts.Output != "" {
+		args = append(args, []string{"-o", opts.Output}...)
+	}
+	args = append(args, opts.Paths...)
 	return command.Command("go", args...)
 }
