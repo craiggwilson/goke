@@ -12,7 +12,7 @@ import (
 var registry = task.NewRegistry()
 
 func init() {
-	registry.Declare("build").Description("build the goke build script").DependsOn("clean").Do(build.Build)
+	registry.Declare("build").Description("build the goke build script").DependsOn("clean", "sa").Do(build.Build)
 	registry.Declare("clean").Description("cleans up the artifacts").Do(build.Clean)
 	registry.Declare("lint").Description("lint the packages").Do(build.Lint)
 	registry.Declare("vet").Description("vets the packages").Do(build.Vet)

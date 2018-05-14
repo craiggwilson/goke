@@ -24,7 +24,7 @@ func Fmt(ctx *task.Context) error {
 	return golang.Fmt(&golang.FmtOptions{
 		Paths:     packages,
 		AllErrors: ctx.Verbose,
-		Simplify:  true,
+		List:      true,
 	})(ctx)
 }
 

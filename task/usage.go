@@ -3,7 +3,6 @@ package task
 import (
 	"flag"
 	"fmt"
-	"strings"
 )
 
 func usage(fs *flag.FlagSet, registry *Registry) {
@@ -16,7 +15,7 @@ func usage(fs *flag.FlagSet, registry *Registry) {
 	for _, t := range registry.tasks {
 		fmt.Print("  ", t.Name())
 		if len(t.Dependencies()) > 0 {
-			fmt.Printf(" -> (%s)", strings.Join(t.Dependencies(), ", "))
+			fmt.Print(" ->", t.Dependencies())
 		}
 		fmt.Println()
 		if t.Description() != "" {

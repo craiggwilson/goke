@@ -22,6 +22,11 @@ func Run(registry *Registry, arguments []string) error {
 		return err
 	}
 
+	if len(tasksToRun) == 0 {
+		_, err = parseArgs(registry, append(arguments, "-h"))
+		return err
+	}
+
 	writer := internal.NewPrefixWriter(os.Stdout)
 	ctx := &Context{
 		DryRun:  opts.dryrun,

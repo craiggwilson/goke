@@ -9,6 +9,7 @@ import (
 type FmtOptions struct {
 	Paths     []string
 	AllErrors bool
+	List      bool
 	Simplify  bool
 }
 
@@ -20,6 +21,9 @@ func Fmt(opts *FmtOptions) task.Executor {
 	}
 	if opts.Simplify {
 		args = append(args, "-s")
+	}
+	if opts.List {
+		args = append(args, "-l")
 	}
 	args = append(args, opts.Paths...)
 	return command.Command("gofmt", args...)
