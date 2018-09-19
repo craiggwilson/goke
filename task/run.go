@@ -23,9 +23,6 @@ func Run(registry *Registry, arguments []string) error {
 		return err
 	}
 
-	fmt.Println("TASKS", tasksToRun)
-	fmt.Println("EXTRA OPTS", opts.extraArgs)
-
 	if len(tasksToRun) == 0 {
 		_, err = parseArgs(registry, append(arguments, "-h"))
 		return err
