@@ -23,6 +23,9 @@ func Run(registry *Registry, arguments []string) error {
 		return err
 	}
 
+	fmt.Println("TASKS", tasksToRun)
+	fmt.Println("EXTRA OPTS", opts.extraArgs)
+
 	if len(tasksToRun) == 0 {
 		_, err = parseArgs(registry, append(arguments, "-h"))
 		return err
@@ -30,6 +33,7 @@ func Run(registry *Registry, arguments []string) error {
 
 	writer := internal.NewPrefixWriter(os.Stdout)
 	ctx := &Context{
+		Args:    opts.extraArgs,
 		Context: context.Background(),
 		DryRun:  opts.dryrun,
 		Verbose: opts.verbose,
@@ -69,35 +73,46 @@ func Run(registry *Registry, arguments []string) error {
 }
 
 func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
+
+	requiredTaskNames := parseRequiredTaskNames(arguments)
+	arguments = arguments[len(requiredTaskNames):]
+
 	fs := flag.NewFlagSet("goke", flag.ContinueOnError)
 	fs.Usage = func() {
 		usage(fs, registry)
 	}
 	dryrun := fs.Bool("dryrun", false, "performs a dry run, executing each task with the dry-run flag")
 	verbose := fs.Bool("v", false, "generate verbose logs")
-	if err := fs.Parse(arguments[1:]); err != nil {
+	if err := fs.Parse(arguments); err != nil {
 		return nil, err
 	}
 
-	var requiredTaskNames []string
-	for i := 0; i < fs.NArg(); i++ {
-		arg := fs.Arg(i)
-		if arg[0] != '-' && arg[0] != '/' {
-			requiredTaskNames = append(requiredTaskNames, arg)
-		} else {
-			break
-		}
-	}
+	extraArgs := fs.Args()
 
 	return &runOptions{
 		dryrun:    *dryrun,
+		extraArgs: extraArgs,
 		verbose:   *verbose,
 		taskNames: requiredTaskNames,
 	}, nil
 }
 
+func parseRequiredTaskNames(arguments []string) []string {
+	var requiredTaskNames []string
+	for _, arg := range arguments {
+		if arg[0] == '-' || arg[0] == '/' {
+			break
+		}
+
+		requiredTaskNames = append(requiredTaskNames, arg)
+	}
+
+	return requiredTaskNames
+}
+
 type runOptions struct {
 	dryrun    bool
+	extraArgs []string
 	verbose   bool
 	taskNames []string
 }

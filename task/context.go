@@ -10,6 +10,7 @@ import (
 type Context struct {
 	context.Context
 
+	Args    []string
 	DryRun  bool
 	Verbose bool
 

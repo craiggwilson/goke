@@ -22,7 +22,7 @@ func init() {
 }
 
 func main() {
-	err := task.Run(registry, os.Args)
+	err := task.Run(registry, os.Args[1:])
 	if err != nil {
 		if err == flag.ErrHelp {
 			os.Exit(1)
