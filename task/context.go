@@ -1,12 +1,15 @@
 package task
 
 import (
+	"context"
 	"fmt"
 	"io"
 )
 
 // Context holds information relevent to executing tasks.
 type Context struct {
+	context.Context
+
 	DryRun  bool
 	Verbose bool
 

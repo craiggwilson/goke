@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -29,6 +30,7 @@ func Run(registry *Registry, arguments []string) error {
 
 	writer := internal.NewPrefixWriter(os.Stdout)
 	ctx := &Context{
+		Context: context.Background(),
 		DryRun:  opts.dryrun,
 		Verbose: opts.verbose,
 		w:       writer,

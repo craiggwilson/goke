@@ -81,8 +81,11 @@ func (t dummyTask) Dependencies() []string {
 func (t dummyTask) Description() string {
 	return ""
 }
-func (t dummyTask) Execute(*Context) error {
+func (t dummyTask) Executor() Executor {
 	return nil
+}
+func (t dummyTask) Hidden() bool {
+	return false
 }
 func (t dummyTask) Name() string {
 	return string(t)

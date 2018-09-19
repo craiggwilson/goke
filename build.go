@@ -18,6 +18,7 @@ func init() {
 	registry.Declare("vet").Description("vets the packages").Do(build.Vet)
 	registry.Declare("fmt").Description("formats the packages").Do(build.Fmt)
 	registry.Declare("sa").Description("performs a static analysis").DependsOn("fmt", "lint", "vet")
+	registry.Declare("test").Description("runs tests in all the packages").Do(build.Test)
 }
 
 func main() {

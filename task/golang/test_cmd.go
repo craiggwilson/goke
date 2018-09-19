@@ -19,7 +19,7 @@ type TestOptions struct {
 	VetList  string
 }
 
-// TestCmd returns a function that runs go test.
+// Test returns a function that runs go test.
 func Test(opts *TestOptions) task.Executor {
 	args := []string{"test"}
 	if opts.Failfast {

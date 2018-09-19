@@ -34,6 +34,13 @@ func Lint(ctx *task.Context) error {
 	})(ctx)
 }
 
+func Test(ctx *task.Context) error {
+	return golang.Test(&golang.TestOptions{
+		Paths:   packages,
+		Verbose: ctx.Verbose,
+	})(ctx)
+}
+
 func Vet(ctx *task.Context) error {
 	return golang.Vet(&golang.VetOptions{
 		Paths:   packages,
