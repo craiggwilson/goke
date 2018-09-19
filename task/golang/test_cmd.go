@@ -1,7 +1,9 @@
 package golang
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/craiggwilson/goke/task"
@@ -14,6 +16,7 @@ type TestOptions struct {
 	List     string
 	Parallel int
 	Paths    []string
+	Tags     []string
 	Timeout  time.Duration
 	Verbose  bool
 	VetList  string
@@ -27,6 +30,9 @@ func Test(opts *TestOptions) task.Executor {
 	}
 	if opts.Parallel > 0 {
 		args = append(args, "-parallel", strconv.Itoa(opts.Parallel))
+	}
+	if len(opts.Tags) > 0 {
+		args = append(args, fmt.Sprintf("-tags=%s", strings.Join(opts.Tags, ",")))
 	}
 	if opts.Timeout > 0 {
 		args = append(args, "-timeout", opts.Timeout.String())
