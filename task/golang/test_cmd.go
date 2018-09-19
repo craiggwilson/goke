@@ -12,6 +12,7 @@ import (
 
 // TestOptions represents the arguments to the go test command.
 type TestOptions struct {
+	Count    int
 	Failfast bool
 	List     string
 	Parallel int
@@ -25,6 +26,9 @@ type TestOptions struct {
 // Test returns a function that runs go test.
 func Test(opts *TestOptions) task.Executor {
 	args := []string{"test"}
+	if opts.Count > 0 {
+		args = append(args, fmt.Sprintf("-count=%d", opts.Count))
+	}
 	if opts.Failfast {
 		args = append(args, "-failfast")
 	}
