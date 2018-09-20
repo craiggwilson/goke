@@ -6,10 +6,7 @@ import (
 )
 
 func usage(fs *flag.FlagSet, registry *Registry) {
-	fmt.Println("USAGE: [options ...] [tasks ...]")
-	fmt.Println()
-	fmt.Println("OPTIONS:")
-	fs.PrintDefaults()
+	fmt.Println("USAGE: [tasks ...] [options ...]")
 	fmt.Println()
 	fmt.Println("TASKS:")
 	for _, t := range registry.tasks {
@@ -22,4 +19,7 @@ func usage(fs *flag.FlagSet, registry *Registry) {
 			fmt.Println("       ", t.Description())
 		}
 	}
+	fmt.Println()
+	fmt.Println("OPTIONS:")
+	fs.PrintDefaults()
 }

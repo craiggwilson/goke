@@ -12,7 +12,6 @@ import (
 
 // Run orders the tasks be dependencies to build an execution plan and then executes each required task.
 func Run(registry *Registry, arguments []string) error {
-
 	opts, err := parseArgs(registry, arguments)
 	if err != nil {
 		return err
@@ -36,6 +35,8 @@ func Run(registry *Registry, arguments []string) error {
 		Verbose: opts.verbose,
 		w:       writer,
 	}
+
+	fmt.Println(ctx.Args)
 
 	prefix := []byte("      | ")
 
@@ -70,26 +71,46 @@ func Run(registry *Registry, arguments []string) error {
 }
 
 func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
+	dryrun := false
+	verbose := false
+	help := false
+	var requiredTaskNames []string
+	var extraArgs []string
+	seenFlags := false
+	for _, arg := range arguments {
+		if arg[0] == '-' || arg[0] == '/' {
+			seenFlags = true
+			switch arg {
+			case "-v", "--v", "/v":
+				verbose = true
+			case "-dryrun", "--dryrun", "/dryrun":
+				dryrun = true
+			case "-help", "--help", "/help", "-h", "--h", "/h":
+				help = true
+			default:
+				extraArgs = append(extraArgs, arg)
+			}
+		} else {
+			if !seenFlags {
+				requiredTaskNames = append(requiredTaskNames, arg)
+			} else {
+				extraArgs = append(extraArgs, arg)
+			}
+		}
+	}
 
-	requiredTaskNames := parseRequiredTaskNames(arguments)
-	arguments = arguments[len(requiredTaskNames):]
-
-	fs := flag.NewFlagSet("goke", flag.ContinueOnError)
-	fs.Usage = func() {
+	if help {
+		fs := flag.NewFlagSet("goke", flag.ContinueOnError)
+		_ = fs.Bool("dryrun", false, "performs a dry run, executing each task with the dry-run flag")
+		_ = fs.Bool("v", false, "generate verbose logs")
 		usage(fs, registry)
+		return nil, flag.ErrHelp
 	}
-	dryrun := fs.Bool("dryrun", false, "performs a dry run, executing each task with the dry-run flag")
-	verbose := fs.Bool("v", false, "generate verbose logs")
-	if err := fs.Parse(arguments); err != nil {
-		return nil, err
-	}
-
-	extraArgs := fs.Args()
 
 	return &runOptions{
-		dryrun:    *dryrun,
+		dryrun:    dryrun,
 		extraArgs: extraArgs,
-		verbose:   *verbose,
+		verbose:   verbose,
 		taskNames: requiredTaskNames,
 	}, nil
 }
