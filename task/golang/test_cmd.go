@@ -27,10 +27,6 @@ type TestOptions struct {
 // Test returns a function that runs go test.
 func Test(opts *TestOptions) task.Executor {
 	args := []string{"test"}
-	if len(opts.Args) > 0 {
-		args = append(args, "-args")
-		args = append(args, opts.Args...)
-	}
 	if opts.Count > 0 {
 		args = append(args, fmt.Sprintf("-count=%d", opts.Count))
 	}
@@ -51,5 +47,11 @@ func Test(opts *TestOptions) task.Executor {
 	}
 
 	args = append(args, opts.Paths...)
+
+	if len(opts.Args) > 0 {
+		args = append(args, "-args")
+		args = append(args, opts.Args...)
+	}
+
 	return command.Command("go", args...)
 }
