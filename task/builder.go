@@ -31,8 +31,9 @@ func (b *Builder) Do(executor Executor) {
 }
 
 // Hide the task from the task list.
-func (b *Builder) Hide() {
+func (b *Builder) Hide() *Builder {
 	b.task.hidden = true
+	return b
 }
 
 type declaredTask struct {
