@@ -10,6 +10,9 @@ func usage(fs *flag.FlagSet, registry *Registry) {
 	fmt.Println()
 	fmt.Println("TASKS:")
 	for _, t := range registry.tasks {
+		if t.Hidden() {
+			continue
+		}
 		fmt.Print("  ", t.Name())
 		if len(t.Dependencies()) > 0 {
 			fmt.Print(" ->", t.Dependencies())
