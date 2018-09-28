@@ -30,7 +30,8 @@ func Fmt(ctx *task.Context) error {
 
 func Lint(ctx *task.Context) error {
 	return golang.Lint(&golang.LintOptions{
-		Paths: packages,
+		Paths:         packages,
+		SetExitStatus: true,
 	})(ctx)
 }
 
