@@ -15,8 +15,8 @@ func Command(name string, args ...string) task.Executor {
 		ctx.Logf("exec: '%s %s'\n", cmd.Path, strings.Join(cmd.Args[1:], " "))
 
 		if !ctx.DryRun {
-			cmd.Stdout = ctx.Writer()
-			cmd.Stderr = ctx.Writer()
+			cmd.Stdout = ctx
+			cmd.Stderr = ctx
 			cmd.Start()
 			return cmd.Wait()
 		}

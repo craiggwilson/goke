@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/mgutz/ansi"
+
 	"github.com/craiggwilson/goke/task/internal"
 )
 
@@ -36,36 +38,39 @@ func Run(registry *Registry, arguments []string) error {
 		w:       writer,
 	}
 
-	fmt.Println(ctx.Args)
-
-	prefix := []byte("      | ")
+	prefix := []byte("       | ")
 
 	totalStartTime := time.Now()
+
+	cBright := ansi.ColorFunc("white+bh")
+	cInfo := ansi.ColorFunc("cyan+b")
+	cFail := ansi.ColorFunc("red+b")
+	cSuccess := ansi.ColorFunc("green+b")
 
 	for _, t := range tasksToRun {
 		if t.Executor() == nil {
 			// this task is just an aggregate task
 			continue
 		}
-		ctx.Logln("START |", t.Name())
+		ctx.Logln(cInfo("START"), " |", cBright(t.Name()))
 		writer.SetPrefix(prefix)
 		startTime := time.Now()
 		err := t.Executor()(ctx)
 		finishedTime := time.Now()
 		writer.SetPrefix(nil)
 		if err != nil {
-			ctx.Logln("FAIL  |", t.Name())
+			ctx.Logln(cFail("FAIL"), "  |", cBright(t.Name()))
 			writer.SetPrefix(prefix)
-			ctx.Logln(err)
+			ctx.Logln(cBright(err.Error()))
 			return fmt.Errorf("task '%s' failed", t.Name())
 		}
-		ctx.Logf("FINISH| %s in %v\n", t.Name(), finishedTime.Sub(startTime))
+		ctx.Logln(cSuccess("FINISH"), "|", cBright(fmt.Sprintf("%s in %v", t.Name(), finishedTime.Sub(startTime))))
 	}
 
 	totalDuration := time.Now().Sub(totalStartTime)
 
 	ctx.Logln("---------------")
-	ctx.Logln("Completed in ", totalDuration)
+	ctx.Logln(cSuccess(fmt.Sprint("Completed in ", totalDuration)))
 
 	return nil
 }

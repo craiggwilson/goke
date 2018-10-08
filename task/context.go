@@ -34,7 +34,7 @@ func (ctx *Context) Logf(format string, v ...interface{}) {
 	fmt.Fprintf(ctx.w, format, v...)
 }
 
-// Writer gets the output writer.
-func (ctx *Context) Writer() io.Writer {
-	return ctx.w
+// Writer implements the io.Writer interface.
+func (ctx *Context) Write(p []byte) (n int, err error) {
+	return ctx.w.Write(p)
 }
