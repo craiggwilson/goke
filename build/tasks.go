@@ -4,15 +4,17 @@ import (
 	"os"
 
 	"github.com/craiggwilson/goke/task"
-	"github.com/craiggwilson/goke/task/golang"
+	"github.com/craiggwilson/goke/task/command"
 )
 
 func Build(ctx *task.Context) error {
-	return golang.Build(&golang.BuildOptions{
-		Paths:   []string{mainFile},
-		Output:  buildOutputFile,
-		Verbose: ctx.Verbose,
-	})(ctx)
+	args := []string{"build", "-o", buildOutputFile}
+	if ctx.Verbose {
+		args = append(args, "-v")
+	}
+
+	args = append(args, mainFile)
+	return command.Command("go", args...)(ctx)
 }
 
 func Clean(ctx *task.Context) error {
@@ -21,30 +23,26 @@ func Clean(ctx *task.Context) error {
 }
 
 func Fmt(ctx *task.Context) error {
-	return golang.Fmt(&golang.FmtOptions{
-		Paths:     packages,
-		AllErrors: ctx.Verbose,
-		List:      true,
-	})(ctx)
+	args := []string{"-s", "-l"}
+	if ctx.Verbose {
+		args = append(args, "-e")
+	}
+
+	args = append(args, mainFile)
+	return command.Command("gofmt", args...)(ctx)
 }
 
 func Lint(ctx *task.Context) error {
-	return golang.Lint(&golang.LintOptions{
-		Paths:         packages,
-		SetExitStatus: true,
-	})(ctx)
+	args := []string{"-set_exit_status"}
+	args = append(args, packages...)
+	return command.Command("golint", args...)(ctx)
 }
 
 func Test(ctx *task.Context) error {
-	return golang.Test(&golang.TestOptions{
-		Paths:   packages,
-		Verbose: ctx.Verbose,
-	})(ctx)
-}
-
-func Vet(ctx *task.Context) error {
-	return golang.Vet(&golang.VetOptions{
-		Paths:   packages,
-		Verbose: ctx.Verbose,
-	})(ctx)
+	args := []string{"test"}
+	if ctx.Verbose {
+		args = append(args, "-v")
+	}
+	args = append(args, packages...)
+	return command.Command("go", args...)(ctx)
 }
