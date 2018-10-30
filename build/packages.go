@@ -6,6 +6,5 @@ var buildOutputFile = "build.exe"
 var packages = []string{
 	"./task",
 	"./task/command",
-	"./task/golang",
 	"./task/internal",
 }
