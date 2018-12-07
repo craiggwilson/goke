@@ -47,20 +47,9 @@ func Run(registry *Registry, arguments []string) error {
 			continue
 		}
 
-		taskArgs := make(map[string]string)
-		for _, da := range t.DeclaredArgs() {
-			// first look up a specific one to the task
-			v, ok := opts.args.get(t.Name(), da.Name)
-			if !ok {
-				// try to find one in the global namespace
-				v, ok = opts.args.get("", da.Name)
-			}
-
-			if ok {
-				taskArgs[da.Name] = v
-			} else if da.Required {
-				return fmt.Errorf("task %q has a required argument %q that was not provided", t.Name(), da.Name)
-			}
+		taskArgs, err := argsForTask(t, opts.args)
+		if err != nil {
+			return err
 		}
 
 		ctx := &Context{
@@ -76,7 +65,7 @@ func Run(registry *Registry, arguments []string) error {
 		writer.SetPrefix(prefix)
 
 		startTime := time.Now()
-		err := executor(ctx)
+		err = executor(ctx)
 		finishedTime := time.Now()
 
 		writer.SetPrefix(nil)
@@ -84,7 +73,7 @@ func Run(registry *Registry, arguments []string) error {
 			ctx.Logln(cFail("FAIL"), "  |", cBright(t.Name()))
 			writer.SetPrefix(prefix)
 			ctx.Logln(cBright(err.Error()))
-			return fmt.Errorf("task '%s' failed", t.Name())
+			return fmt.Errorf("task %q failed", t.Name())
 		}
 		ctx.Logln(cSuccess("FINISH"), "|", cBright(fmt.Sprintf("%s in %v", t.Name(), finishedTime.Sub(startTime))))
 	}
@@ -97,38 +86,51 @@ func Run(registry *Registry, arguments []string) error {
 	return nil
 }
 
-func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
-	dryrun := false
-	verbose := false
-	help := false
-	var requiredTaskNames []string
-	args := globalArgs{}
-	seenFlags := false
-	for _, arg := range arguments {
-		if arg[0] == '-' || arg[0] == '/' {
-			seenFlags = true
-			switch arg {
-			case "--verbose", "-v", "/v":
-				verbose = true
-			case "--dryrun", "/dryrun":
-				dryrun = true
-			case "--help", "/help", "-h", "--h", "/h":
-				help = true
-			default:
-				taskName, argName, value := parseExtraArg(arg)
-				args.set(taskName, argName, value)
-			}
-		} else {
-			if !seenFlags {
-				requiredTaskNames = append(requiredTaskNames, arg)
-			} else {
-				taskName, argName, value := parseExtraArg(arg)
-				args.set(taskName, argName, value)
-			}
+func argsForTask(task Task, args globalArgs) (map[string]string, error) {
+	taskArgs := make(map[string]string)
+	for _, da := range task.DeclaredArgs() {
+		// first look up a specific one to the task
+		v, ok := args.get(task.Name(), da.Name)
+		if !ok {
+			// try to find one in the global namespace
+			v, ok = args.get("", da.Name)
+		}
+
+		if ok {
+			taskArgs[da.Name] = v
+		} else if da.Required {
+			return nil, fmt.Errorf("task %q has a required argument %q that was not provided", task.Name(), da.Name)
 		}
 	}
 
-	if help {
+	return taskArgs, nil
+}
+
+func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
+	var requiredTaskNames []string
+	args := globalArgs{}
+	for _, arg := range arguments {
+		if arg[0] == '-' || arg[0] == '/' {
+			taskName, argName, value := parseArg(arg)
+			switch argName {
+			case "h":
+				argName = "help"
+			case "v":
+				argName = "verbose"
+			}
+
+			args.set(taskName, argName, value)
+		} else {
+			requiredTaskNames = append(requiredTaskNames, arg)
+		}
+	}
+
+	dryrunArg, _ := args.get("", "dryrun")
+	dryrun := dryrunArg == "true"
+	verboseArg, _ := args.get("", "verbose")
+	verbose := verboseArg == "true"
+	helpArg, _ := args.get("", "help")
+	if helpArg == "true" {
 		fs := flag.NewFlagSet("goke", flag.ContinueOnError)
 		_ = fs.Bool("dryrun", false, "performs a dry run, executing each task with the dry-run flag")
 		_ = fs.Bool("v", false, "generate verbose logs")
@@ -144,12 +146,12 @@ func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
 	}, nil
 }
 
-func parseExtraArg(arg string) (string, string, string) {
+func parseArg(arg string) (string, string, string) {
 	arg = strings.TrimLeftFunc(arg, func(r rune) bool {
 		return r == '-' || r == '/'
 	})
 	parts := strings.SplitN(arg, "=", 2)
-	ns, name := parseExtraArgName(parts[0])
+	ns, name := parseArgName(parts[0])
 	if len(parts) == 1 {
 		return ns, name, "true"
 	}
@@ -157,7 +159,7 @@ func parseExtraArg(arg string) (string, string, string) {
 	return ns, name, parts[1]
 }
 
-func parseExtraArgName(name string) (string, string) {
+func parseArgName(name string) (string, string) {
 	parts := strings.SplitN(name, ":", 2)
 	if len(parts) == 1 {
 		return "", parts[0]

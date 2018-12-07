@@ -75,6 +75,10 @@ func TestToposort(t *testing.T) {
 
 type dummyTask string
 
+func (t dummyTask) DeclaredArgs() []DeclaredTaskArg {
+	return nil
+}
+
 func (t dummyTask) Dependencies() []string {
 	return nil
 }
