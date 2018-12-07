@@ -13,6 +13,29 @@ type Builder struct {
 	task *declaredTask
 }
 
+func (b *Builder) Arg(a DeclaredTaskArg) *Builder {
+	b.task.declaredArgs = append(b.task.declaredArgs, a)
+	return b
+}
+
+// OptionalArg declares an option argument to the task.
+func (b *Builder) OptionalArg(name string) *Builder {
+	b.task.declaredArgs = append(b.task.declaredArgs, DeclaredTaskArg{
+		Name:     name,
+		Required: false,
+	})
+	return b
+}
+
+// RequiredArg declares an option argument to the task.
+func (b *Builder) RequiredArg(name string) *Builder {
+	b.task.declaredArgs = append(b.task.declaredArgs, DeclaredTaskArg{
+		Name:     name,
+		Required: true,
+	})
+	return b
+}
+
 // Description sets the description for the task.
 func (b *Builder) Description(description string) *Builder {
 	b.task.description = description
@@ -38,12 +61,16 @@ func (b *Builder) Hide() *Builder {
 
 type declaredTask struct {
 	name         string
+	declaredArgs []DeclaredTaskArg
 	description  string
 	dependencies []string
 	executor     Executor
 	hidden       bool
 }
 
+func (t *declaredTask) DeclaredArgs() []DeclaredTaskArg {
+	return t.declaredArgs
+}
 func (t *declaredTask) Dependencies() []string {
 	return t.dependencies
 }

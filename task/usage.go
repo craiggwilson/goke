@@ -14,8 +14,19 @@ func usage(fs *flag.FlagSet, registry *Registry) {
 			continue
 		}
 		fmt.Print("  ", t.Name())
+		args := t.DeclaredArgs()
+		if len(args) > 0 {
+			fmt.Print("(")
+			for i, a := range args {
+				fmt.Print(a.Name)
+				if i < len(args)-1 {
+					fmt.Print(", ")
+				}
+			}
+			fmt.Print(")")
+		}
 		if len(t.Dependencies()) > 0 {
-			fmt.Print(" ->", t.Dependencies())
+			fmt.Print(" -> ", t.Dependencies())
 		}
 		fmt.Println()
 		if t.Description() != "" {

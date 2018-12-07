@@ -4,17 +4,30 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 )
 
 // Context holds information relevent to executing tasks.
 type Context struct {
 	context.Context
 
-	Args    []string
 	DryRun  bool
 	Verbose bool
 
-	w io.Writer
+	taskArgs map[string]string
+	w        io.Writer
+}
+
+// Get returns an argument of the given name. If one doesn't exist,
+// a lookup in the environment will be made.
+func (ctx *Context) Get(name string) string {
+	if ctx.taskArgs != nil {
+		if v, ok := ctx.taskArgs[name]; ok {
+			return v
+		}
+	}
+
+	return os.Getenv(name)
 }
 
 // Log formats using the default formats for its operands sends it to the log.

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/mgutz/ansi"
@@ -30,14 +31,6 @@ func Run(registry *Registry, arguments []string) error {
 	}
 
 	writer := internal.NewPrefixWriter(os.Stdout)
-	ctx := &Context{
-		Args:    opts.extraArgs,
-		Context: context.Background(),
-		DryRun:  opts.dryrun,
-		Verbose: opts.verbose,
-		w:       writer,
-	}
-
 	prefix := []byte("       | ")
 
 	totalStartTime := time.Now()
@@ -48,15 +41,44 @@ func Run(registry *Registry, arguments []string) error {
 	cSuccess := ansi.ColorFunc("green+b")
 
 	for _, t := range tasksToRun {
-		if t.Executor() == nil {
+		executor := t.Executor()
+		if executor == nil {
 			// this task is just an aggregate task
 			continue
 		}
+
+		taskArgs := make(map[string]string)
+		for _, da := range t.DeclaredArgs() {
+			// first look up a specific one to the task
+			v, ok := opts.args.get(t.Name(), da.Name)
+			if !ok {
+				// try to find one in the global namespace
+				v, ok = opts.args.get("", da.Name)
+			}
+
+			if ok {
+				taskArgs[da.Name] = v
+			} else if da.Required {
+				return fmt.Errorf("task %q has a required argument %q that was not provided", t.Name(), da.Name)
+			}
+		}
+
+		ctx := &Context{
+			Context: context.Background(),
+			DryRun:  opts.dryrun,
+			Verbose: opts.verbose,
+
+			taskArgs: taskArgs,
+			w:        writer,
+		}
+
 		ctx.Logln(cInfo("START"), " |", cBright(t.Name()))
 		writer.SetPrefix(prefix)
+
 		startTime := time.Now()
-		err := t.Executor()(ctx)
+		err := executor(ctx)
 		finishedTime := time.Now()
+
 		writer.SetPrefix(nil)
 		if err != nil {
 			ctx.Logln(cFail("FAIL"), "  |", cBright(t.Name()))
@@ -69,8 +91,8 @@ func Run(registry *Registry, arguments []string) error {
 
 	totalDuration := time.Now().Sub(totalStartTime)
 
-	ctx.Logln("---------------")
-	ctx.Logln(cSuccess(fmt.Sprint("Completed in ", totalDuration)))
+	fmt.Fprintln(writer, "---------------")
+	fmt.Fprintln(writer, cSuccess(fmt.Sprint("Completed in ", totalDuration)))
 
 	return nil
 }
@@ -80,26 +102,28 @@ func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
 	verbose := false
 	help := false
 	var requiredTaskNames []string
-	var extraArgs []string
+	args := globalArgs{}
 	seenFlags := false
 	for _, arg := range arguments {
 		if arg[0] == '-' || arg[0] == '/' {
 			seenFlags = true
 			switch arg {
-			case "-v", "--v", "/v":
+			case "--verbose", "-v", "/v":
 				verbose = true
-			case "-dryrun", "--dryrun", "/dryrun":
+			case "--dryrun", "/dryrun":
 				dryrun = true
-			case "-help", "--help", "/help", "-h", "--h", "/h":
+			case "--help", "/help", "-h", "--h", "/h":
 				help = true
 			default:
-				extraArgs = append(extraArgs, arg)
+				taskName, argName, value := parseExtraArg(arg)
+				args.set(taskName, argName, value)
 			}
 		} else {
 			if !seenFlags {
 				requiredTaskNames = append(requiredTaskNames, arg)
 			} else {
-				extraArgs = append(extraArgs, arg)
+				taskName, argName, value := parseExtraArg(arg)
+				args.set(taskName, argName, value)
 			}
 		}
 	}
@@ -114,10 +138,32 @@ func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
 
 	return &runOptions{
 		dryrun:    dryrun,
-		extraArgs: extraArgs,
+		args:      args,
 		verbose:   verbose,
 		taskNames: requiredTaskNames,
 	}, nil
+}
+
+func parseExtraArg(arg string) (string, string, string) {
+	arg = strings.TrimLeftFunc(arg, func(r rune) bool {
+		return r == '-' || r == '/'
+	})
+	parts := strings.SplitN(arg, "=", 2)
+	ns, name := parseExtraArgName(parts[0])
+	if len(parts) == 1 {
+		return ns, name, "true"
+	}
+
+	return ns, name, parts[1]
+}
+
+func parseExtraArgName(name string) (string, string) {
+	parts := strings.SplitN(name, ":", 2)
+	if len(parts) == 1 {
+		return "", parts[0]
+	}
+
+	return parts[0], parts[1]
 }
 
 func parseRequiredTaskNames(arguments []string) []string {
@@ -135,7 +181,28 @@ func parseRequiredTaskNames(arguments []string) []string {
 
 type runOptions struct {
 	dryrun    bool
-	extraArgs []string
+	args      globalArgs
 	verbose   bool
 	taskNames []string
+}
+
+type globalArgs map[string]map[string]string
+
+func (ga globalArgs) get(taskName, argName string) (string, bool) {
+	if ta, ok := ga[taskName]; ok {
+		if v, ok := ta[argName]; ok {
+			return v, true
+		}
+	}
+	return "", false
+}
+
+func (ga globalArgs) set(taskName, argName, value string) {
+	ta, ok := ga[taskName]
+	if !ok {
+		ta = make(map[string]string)
+		ga[taskName] = ta
+	}
+
+	ta[argName] = value
 }
