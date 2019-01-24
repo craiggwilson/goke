@@ -20,8 +20,7 @@ func Executor(cmd *exec.Cmd) task.Executor {
 		if !ctx.DryRun {
 			cmd.Stdout = ctx
 			cmd.Stderr = ctx
-			cmd.Start()
-			return cmd.Wait()
+			return cmd.Run()
 		}
 
 		return nil
