@@ -9,6 +9,7 @@ import (
 	"github.com/craiggwilson/goke/task"
 )
 
+// CopyFile copies a file.
 func CopyFile(ctx *task.Context, fromPath, toPath string) error {
 	ctx.Logf("copy file: %s -> %s", fromPath, toPath)
 	from, err := os.Open(fromPath)
@@ -36,6 +37,7 @@ func CopyFile(ctx *task.Context, fromPath, toPath string) error {
 	return nil
 }
 
+// CreateDirectory creates a directory.
 func CreateDirectory(ctx *task.Context, path string) error {
 	ctx.Logf("create dir: %s", path)
 	err := os.Mkdir(path, os.ModePerm)
@@ -46,6 +48,7 @@ func CreateDirectory(ctx *task.Context, path string) error {
 	return nil
 }
 
+// CreateDirectoryR creates a directory recursively.
 func CreateDirectoryR(ctx *task.Context, path string) error {
 	ctx.Logf("create dir recursive: %s", path)
 	err := os.MkdirAll(path, os.ModePerm)
@@ -56,6 +59,7 @@ func CreateDirectoryR(ctx *task.Context, path string) error {
 	return nil
 }
 
+// CreateFile creates a file.
 func CreateFile(ctx *task.Context, path string) (*os.File, error) {
 	ctx.Logf("create file: %s", path)
 	f, err := os.Create(path)
@@ -66,6 +70,7 @@ func CreateFile(ctx *task.Context, path string) (*os.File, error) {
 	return f, nil
 }
 
+// CreateFileR creates a file ensuring all the directories are created recursively.
 func CreateFileR(ctx *task.Context, path string) (*os.File, error) {
 	ctx.Logf("create file recursive: %s", path)
 	dir := filepath.Dir(path)
@@ -78,6 +83,7 @@ func CreateFileR(ctx *task.Context, path string) (*os.File, error) {
 	return CreateFile(ctx, path)
 }
 
+// DirectoryExists indicates if the directory exists.
 func DirectoryExists(path string) (bool, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -91,6 +97,7 @@ func DirectoryExists(path string) (bool, error) {
 	return fi.IsDir(), nil
 }
 
+// FileExists indicates if the file exists.
 func FileExists(path string) (bool, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -104,6 +111,7 @@ func FileExists(path string) (bool, error) {
 	return !fi.IsDir(), nil
 }
 
+// IsDirectoryEmpty indicates if the directory is empty.
 func IsDirectoryEmpty(path string) (bool, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -127,6 +135,7 @@ func IsDirectoryEmpty(path string) (bool, error) {
 	return len(entries) == 0, nil
 }
 
+// IsFileEmpty indicates if the file is empty.
 func IsFileEmpty(path string) (bool, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -144,6 +153,7 @@ func IsFileEmpty(path string) (bool, error) {
 	return fi.Size() == 0, nil
 }
 
+// RemoveDirectory removes the directory.
 func RemoveDirectory(ctx *task.Context, path string) error {
 	ctx.Logf("remove directory: %s", path)
 	fi, err := os.Stat(path)
@@ -167,6 +177,7 @@ func RemoveDirectory(ctx *task.Context, path string) error {
 	return nil
 }
 
+// RemoveFile removes the file.
 func RemoveFile(ctx *task.Context, path string) error {
 	ctx.Logf("remove file: %s", path)
 	fi, err := os.Stat(path)

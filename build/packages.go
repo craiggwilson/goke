@@ -7,4 +7,6 @@ var packages = []string{
 	"./task",
 	"./task/command",
 	"./task/internal",
+	"./pkg/git",
+	"./pkg/sh",
 }

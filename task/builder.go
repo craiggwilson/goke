@@ -13,12 +13,13 @@ type Builder struct {
 	task *declaredTask
 }
 
+// Arg declares an argument for the task.
 func (b *Builder) Arg(a DeclaredTaskArg) *Builder {
 	b.task.declaredArgs = append(b.task.declaredArgs, a)
 	return b
 }
 
-// OptionalArg declares an option argument to the task.
+// OptionalArg declares an optional argument for the task.
 func (b *Builder) OptionalArg(name string) *Builder {
 	b.task.declaredArgs = append(b.task.declaredArgs, DeclaredTaskArg{
 		Name:     name,
@@ -27,7 +28,7 @@ func (b *Builder) OptionalArg(name string) *Builder {
 	return b
 }
 
-// RequiredArg declares an option argument to the task.
+// RequiredArg declares a required argument for the task.
 func (b *Builder) RequiredArg(name string) *Builder {
 	b.task.declaredArgs = append(b.task.declaredArgs, DeclaredTaskArg{
 		Name:     name,
