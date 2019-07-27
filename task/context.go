@@ -7,6 +7,15 @@ import (
 	"os"
 )
 
+// NewContext makes a new Context.
+func NewContext(ctx context.Context, w io.Writer, taskArgs map[string]string) *Context {
+	return &Context{
+		Context:  ctx,
+		w:        w,
+		taskArgs: taskArgs,
+	}
+}
+
 // Context holds information relevent to executing tasks.
 type Context struct {
 	context.Context

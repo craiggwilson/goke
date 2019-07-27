@@ -140,7 +140,7 @@ func IsFileEmpty(path string) (bool, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return false, fmt.Errorf("directory %s does not exist", path)
+			return false, fmt.Errorf("file %s does not exist", path)
 		}
 
 		return false, fmt.Errorf("failed statting path %s: %v", path, err)

@@ -52,14 +52,7 @@ func Run(registry *Registry, arguments []string) error {
 			return err
 		}
 
-		ctx := &Context{
-			Context: context.Background(),
-			DryRun:  opts.dryrun,
-			Verbose: opts.verbose,
-
-			taskArgs: taskArgs,
-			w:        writer,
-		}
+		ctx := NewContext(context.Background(), writer, taskArgs)
 
 		ctx.Logln(cInfo("START"), " |", cBright(t.Name()))
 		writer.SetPrefix(prefix)
