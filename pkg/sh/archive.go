@@ -1,7 +1,9 @@
 package sh
 
 import (
+	"archive/tar"
 	"archive/zip"
+	"compress/gzip"
 	"errors"
 	"io"
 	"os"
@@ -16,12 +18,83 @@ import (
 func Archive(ctx *task.Context, src, dest string) error {
 	if strings.HasSuffix(dest, ".zip") {
 		return ArchiveZip(ctx, src, dest)
+	} else if strings.HasSuffix(dest, ".tgz") || strings.HasSuffix(dest, ".tar.gz") {
+		return ArchiveTGZ(ctx, src, dest)
 	}
 
 	return errors.New("unable to determine archive format")
 }
 
-// ArchiveZip will zip the src into a a zipped file at the dest.
+// ArchiveTGZ will archive using tar and gzip to the destination.
+func ArchiveTGZ(ctx *task.Context, src, dest string) error {
+	ctx.Logf("tgz: %s -> %s\n", src, dest)
+
+	src, err := filepath.Abs(src)
+	if err != nil {
+		return err
+	}
+
+	dest, err = filepath.Abs(dest)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	gw := gzip.NewWriter(f)
+	defer gw.Close()
+
+	tw := tar.NewWriter(gw)
+	defer tw.Close()
+
+	srcFileInfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	var baseDir string
+	if srcFileInfo.IsDir() {
+		baseDir = filepath.Base(src)
+	}
+
+	return filepath.Walk(src, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		header, err := tar.FileInfoHeader(fi, fi.Name())
+		if err != nil {
+			return err
+		}
+
+		if baseDir != "" {
+			header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, src))
+		}
+
+		if err = tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if fi.IsDir() {
+			return nil
+		}
+
+		srcFile, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer srcFile.Close()
+
+		_, err = io.Copy(tw, srcFile)
+		return err
+	})
+}
+
+// ArchiveZip will zip the src into a a zipped file at the destination.
 func ArchiveZip(ctx *task.Context, src, dest string) error {
 	ctx.Logf("zip: %s -> %s\n", src, dest)
 
@@ -54,7 +127,7 @@ func ArchiveZip(ctx *task.Context, src, dest string) error {
 		baseDir = filepath.Base(src)
 	}
 
-	filepath.Walk(src, func(path string, fi os.FileInfo, err error) error {
+	return filepath.Walk(src, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -96,17 +169,76 @@ func ArchiveZip(ctx *task.Context, src, dest string) error {
 		_, err = io.Copy(destFile, srcFile)
 		return err
 	})
-
-	return nil
 }
 
 // Unarchive decompresses the archive according to the source's extension.
 func Unarchive(ctx *task.Context, src, dest string) error {
 	if strings.HasSuffix(src, ".zip") {
 		return UnarchiveZip(ctx, src, dest)
+	} else if strings.HasSuffix(src, ".tgz") || strings.HasSuffix(src, ".tar.gz") {
+		return UnarchiveTGZ(ctx, src, dest)
 	}
 
 	return errors.New("unable to determine archive format")
+}
+
+// UnarchiveTGZ decompresses the src tgz file into the destination.
+func UnarchiveTGZ(ctx *task.Context, src, dest string) error {
+	ctx.Logf("unzip: %s -> %s\n", src, dest)
+
+	src, err := filepath.Abs(src)
+	if err != nil {
+		return err
+	}
+
+	dest, err = filepath.Abs(dest)
+	if err != nil {
+		return err
+	}
+
+	r, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	gr, err := gzip.NewReader(r)
+	if err != nil {
+		return err
+	}
+	defer gr.Close()
+
+	tr := tar.NewReader(gr)
+	for {
+		header, err := tr.Next()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+
+		path := filepath.Join(dest, header.Name)
+		fi := header.FileInfo()
+		if fi.IsDir() {
+			if err = os.MkdirAll(path, fi.Mode()); err != nil {
+				return err
+			}
+			continue
+		}
+
+		destFile, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, fi.Mode())
+		if err != nil {
+			return err
+		}
+		defer destFile.Close()
+
+		if _, err = io.Copy(destFile, tr); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // UnarchiveZip decompresses the src zip file into the destination.
@@ -127,6 +259,7 @@ func UnarchiveZip(ctx *task.Context, src, dest string) error {
 	if err != nil {
 		return err
 	}
+	defer zr.Close()
 
 	if err = os.MkdirAll(dest, 0755); err != nil {
 		return err
