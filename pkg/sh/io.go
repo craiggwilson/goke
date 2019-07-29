@@ -11,7 +11,7 @@ import (
 
 // CopyFile copies a file.
 func CopyFile(ctx *task.Context, fromPath, toPath string) error {
-	ctx.Logf("copy file: %s -> %s", fromPath, toPath)
+	ctx.Logf("copy file: %s -> %s\n", fromPath, toPath)
 	from, err := os.Open(fromPath)
 	if err != nil {
 		return fmt.Errorf("failed opening %s: %v", fromPath, err)
@@ -39,7 +39,7 @@ func CopyFile(ctx *task.Context, fromPath, toPath string) error {
 
 // CreateDirectory creates a directory.
 func CreateDirectory(ctx *task.Context, path string) error {
-	ctx.Logf("create dir: %s", path)
+	ctx.Logf("create dir: %s\n", path)
 	err := os.Mkdir(path, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("failed making directory %s: %v", path, err)
@@ -50,7 +50,7 @@ func CreateDirectory(ctx *task.Context, path string) error {
 
 // CreateDirectoryR creates a directory recursively.
 func CreateDirectoryR(ctx *task.Context, path string) error {
-	ctx.Logf("create dir recursive: %s", path)
+	ctx.Logf("create dir recursive: %s\n", path)
 	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("failed making directory %s: %v", path, err)
@@ -61,7 +61,7 @@ func CreateDirectoryR(ctx *task.Context, path string) error {
 
 // CreateFile creates a file.
 func CreateFile(ctx *task.Context, path string) (*os.File, error) {
-	ctx.Logf("create file: %s", path)
+	ctx.Logf("create file: %s\n", path)
 	f, err := os.Create(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating file %s: %v", path, err)
@@ -72,7 +72,7 @@ func CreateFile(ctx *task.Context, path string) (*os.File, error) {
 
 // CreateFileR creates a file ensuring all the directories are created recursively.
 func CreateFileR(ctx *task.Context, path string) (*os.File, error) {
-	ctx.Logf("create file recursive: %s", path)
+	ctx.Logf("create file recursive: %s\n", path)
 	dir := filepath.Dir(path)
 
 	err := CreateDirectoryR(ctx, dir)
@@ -155,7 +155,7 @@ func IsFileEmpty(path string) (bool, error) {
 
 // RemoveDirectory removes the directory.
 func RemoveDirectory(ctx *task.Context, path string) error {
-	ctx.Logf("remove directory: %s", path)
+	ctx.Logf("remove directory: %s\n", path)
 	fi, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -179,7 +179,7 @@ func RemoveDirectory(ctx *task.Context, path string) error {
 
 // RemoveFile removes the file.
 func RemoveFile(ctx *task.Context, path string) error {
-	ctx.Logf("remove file: %s", path)
+	ctx.Logf("remove file: %s\n", path)
 	fi, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
