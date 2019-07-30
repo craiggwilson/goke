@@ -66,13 +66,17 @@ func ArchiveTGZ(ctx *task.Context, src, dest string) error {
 			return err
 		}
 
+		if baseDir == path {
+			return nil
+		}
+
 		header, err := tar.FileInfoHeader(fi, fi.Name())
 		if err != nil {
 			return err
 		}
 
 		if baseDir != "" {
-			header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, src))
+			header.Name, _ = filepath.Rel("/", strings.TrimPrefix(path, src))
 		}
 
 		if err = tw.WriteHeader(header); err != nil {
@@ -132,17 +136,13 @@ func ArchiveZip(ctx *task.Context, src, dest string) error {
 			return err
 		}
 
-		if path == src || path == dest {
-			return nil
-		}
-
 		header, err := zip.FileInfoHeader(fi)
 		if err != nil {
 			return err
 		}
 
 		if baseDir != "" {
-			header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, src))
+			header.Name, _ = filepath.Rel("/", strings.TrimPrefix(path, src))
 		}
 
 		if fi.IsDir() {
