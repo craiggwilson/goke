@@ -22,6 +22,17 @@ func ExitCode(err error) int {
 	return 1
 }
 
+// IsNotRan indicates if command that generated the error actually ran.
+func IsNotRan(err error) bool {
+	if err == nil {
+		return false
+	}
+	if eerr, ok := err.(*exec.ExitError); ok {
+		return !eerr.Exited()
+	}
+	return true
+}
+
 // Run the specified command piping its output to goke's output.
 func Run(ctx *task.Context, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
