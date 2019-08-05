@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/craiggwilson/goke/task"
 )
@@ -37,7 +38,7 @@ func RunOutput(ctx *task.Context, name string, args ...string) (string, error) {
 	cmd.Stderr = ctx
 	cmd.Stdin = os.Stdin
 	err := RunCmd(ctx, cmd)
-	return output.String(), err
+	return strings.TrimRight(output.String(), "\r\n"), err
 }
 
 // RunCmd runs the provided command.
