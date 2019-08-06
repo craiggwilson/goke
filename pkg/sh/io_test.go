@@ -1,15 +1,12 @@
 package sh_test
 
 import (
-	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/craiggwilson/goke/pkg/sh"
-	"github.com/craiggwilson/goke/task"
 
 	"testing"
 )
@@ -302,9 +299,4 @@ func TestRemoveFile(t *testing.T) {
 	if _, err = os.Stat(tempFile.Name()); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("failed ensuring file does not exist: %v", err)
 	}
-}
-
-func makeTestContext() *task.Context {
-	var w bytes.Buffer
-	return task.NewContext(context.Background(), &w, nil)
 }

@@ -23,7 +23,11 @@ func CopyFile(ctx *task.Context, fromPath, toPath string) error {
 		return fmt.Errorf("failed statting %s: %v", fromPath, err)
 	}
 
-	to, err := os.OpenFile(toPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fi.Mode())
+	return copyTo(fromPath, from, toPath, fi.Mode())
+}
+
+func copyTo(fromPath string, from io.Reader, toPath string, toMode os.FileMode) error {
+	to, err := os.OpenFile(toPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, toMode)
 	if err != nil {
 		return fmt.Errorf("failed creating/opening %s: %v", toPath, err)
 	}

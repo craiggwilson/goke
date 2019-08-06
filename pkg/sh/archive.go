@@ -281,6 +281,13 @@ func UnarchiveZip(ctx *task.Context, src, dest string) error {
 
 		defer srcFile.Close()
 
+		_, err = os.Stat(filepath.Dir(path))
+		if err != nil && os.IsNotExist(err) {
+			if err = os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+				return err
+			}
+		}
+
 		destFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 		if err != nil {
 			return err
