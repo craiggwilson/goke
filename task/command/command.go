@@ -17,12 +17,6 @@ func Executor(cmd *exec.Cmd) task.Executor {
 	return func(ctx *task.Context) error {
 		ctx.Logf("exec: '%s %s'\n", cmd.Path, strings.Join(cmd.Args[1:], " "))
 
-		if !ctx.DryRun {
-			cmd.Stdout = ctx
-			cmd.Stderr = ctx
-			return cmd.Run()
-		}
-
-		return nil
+		return cmd.Run()
 	}
 }

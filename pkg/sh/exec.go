@@ -36,8 +36,6 @@ func IsNotRan(err error) bool {
 // Run the specified command piping its output to goke's output.
 func Run(ctx *task.Context, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Stderr = ctx
-	cmd.Stdin = os.Stdin
 	return RunCmd(ctx, cmd)
 }
 
@@ -46,8 +44,6 @@ func RunOutput(ctx *task.Context, name string, args ...string) (string, error) {
 	var output bytes.Buffer
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stdout = &output
-	cmd.Stderr = ctx
-	cmd.Stdin = os.Stdin
 	err := RunCmd(ctx, cmd)
 	return strings.TrimRight(output.String(), "\r\n"), err
 }
@@ -55,5 +51,14 @@ func RunOutput(ctx *task.Context, name string, args ...string) (string, error) {
 // RunCmd runs the provided command.
 func RunCmd(ctx *task.Context, cmd *exec.Cmd) error {
 	LogCmd(ctx, cmd)
+	if ctx.Verbose && cmd.Stdout == nil {
+		cmd.Stdout = ctx
+	}
+	if cmd.Stderr == nil {
+		cmd.Stderr = ctx
+	}
+	if cmd.Stdin == nil {
+		cmd.Stdin = os.Stdin
+	}
 	return cmd.Run()
 }

@@ -3,8 +3,8 @@ package build
 import (
 	"os"
 
+	"github.com/craiggwilson/goke/pkg/sh"
 	"github.com/craiggwilson/goke/task"
-	"github.com/craiggwilson/goke/task/command"
 )
 
 func Build(ctx *task.Context) error {
@@ -14,7 +14,7 @@ func Build(ctx *task.Context) error {
 	}
 
 	args = append(args, mainFile)
-	return command.Command("go", args...)(ctx)
+	return sh.Run(ctx, "go", args...)
 }
 
 func Clean(ctx *task.Context) error {
@@ -29,13 +29,13 @@ func Fmt(ctx *task.Context) error {
 	}
 
 	args = append(args, mainFile)
-	return command.Command("gofmt", args...)(ctx)
+	return sh.Run(ctx, "gofmt", args...)
 }
 
 func Lint(ctx *task.Context) error {
 	args := []string{"-set_exit_status"}
 	args = append(args, packages...)
-	return command.Command("golint", args...)(ctx)
+	return sh.Run(ctx, "golint", args...)
 }
 
 func Test(ctx *task.Context) error {
@@ -44,5 +44,5 @@ func Test(ctx *task.Context) error {
 		args = append(args, "-v")
 	}
 	args = append(args, packages...)
-	return command.Command("go", args...)(ctx)
+	return sh.Run(ctx, "go", args...)
 }

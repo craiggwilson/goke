@@ -20,7 +20,6 @@ func NewContext(ctx context.Context, w io.Writer, taskArgs map[string]string) *C
 type Context struct {
 	context.Context
 
-	DryRun  bool
 	Verbose bool
 
 	taskArgs map[string]string

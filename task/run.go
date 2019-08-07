@@ -53,6 +53,7 @@ func Run(registry *Registry, arguments []string) error {
 		}
 
 		ctx := NewContext(context.Background(), writer, taskArgs)
+		ctx.Verbose = opts.verbose
 
 		ctx.Logln(cInfo("START"), " |", cBright(t.Name()))
 		writer.SetPrefix(prefix)
@@ -118,21 +119,17 @@ func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
 		}
 	}
 
-	dryrunArg, _ := args.get("", "dryrun")
-	dryrun := dryrunArg == "true"
 	verboseArg, _ := args.get("", "verbose")
 	verbose := verboseArg == "true"
 	helpArg, _ := args.get("", "help")
 	if helpArg == "true" {
 		fs := flag.NewFlagSet("goke", flag.ContinueOnError)
-		_ = fs.Bool("dryrun", false, "performs a dry run, executing each task with the dry-run flag")
 		_ = fs.Bool("v", false, "generate verbose logs")
 		usage(fs, registry)
 		return nil, flag.ErrHelp
 	}
 
 	return &runOptions{
-		dryrun:    dryrun,
 		args:      args,
 		verbose:   verbose,
 		taskNames: requiredTaskNames,
@@ -175,7 +172,6 @@ func parseRequiredTaskNames(arguments []string) []string {
 }
 
 type runOptions struct {
-	dryrun    bool
 	args      globalArgs
 	verbose   bool
 	taskNames []string
