@@ -5,13 +5,56 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/craiggwilson/goke/task"
 )
 
-// CopyFile copies a file.
-func CopyFile(ctx *task.Context, fromPath, toPath string) error {
-	ctx.Logf("copy file: %s -> %s\n", fromPath, toPath)
+// Copy copies either a file or a directory recursively.
+func Copy(ctx *task.Context, fromPath, toPath string) error {
+	ctx.Logf("cp: %s -> %s\n", fromPath, toPath)
+
+	fromPath = filepath.Clean(fromPath)
+	toPath = filepath.Clean(toPath)
+
+	fi, err := os.Stat(fromPath)
+	if err != nil {
+		return err
+	}
+	if fi.IsDir() {
+		return copyDirectory(fromPath, toPath)
+	}
+
+	return copyFile(fromPath, toPath)
+}
+
+func copyDirectory(fromPath, toPath string) error {
+	_, err := os.Stat(toPath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	} else if err == nil {
+		return fmt.Errorf("destination already exists")
+	}
+
+	return filepath.Walk(fromPath, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		to := filepath.Join(toPath, strings.TrimPrefix(fromPath, path))
+
+		if fi.IsDir() {
+			if err = os.MkdirAll(to, fi.Mode()); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		return copyFile(path, to)
+	})
+}
+
+func copyFile(fromPath, toPath string) error {
 	from, err := os.Open(fromPath)
 	if err != nil {
 		return fmt.Errorf("failed opening %s: %v", fromPath, err)
@@ -43,7 +86,7 @@ func copyTo(fromPath string, from io.Reader, toPath string, toMode os.FileMode) 
 
 // CreateDirectory creates a directory.
 func CreateDirectory(ctx *task.Context, path string) error {
-	ctx.Logf("create dir: %s\n", path)
+	ctx.Logf("mkdir: %s\n", path)
 	err := os.Mkdir(path, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("failed making directory %s: %v", path, err)
@@ -54,7 +97,7 @@ func CreateDirectory(ctx *task.Context, path string) error {
 
 // CreateDirectoryR creates a directory recursively.
 func CreateDirectoryR(ctx *task.Context, path string) error {
-	ctx.Logf("create dir recursive: %s\n", path)
+	ctx.Logf("mkdir -r: %s\n", path)
 	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("failed making directory %s: %v", path, err)
@@ -65,7 +108,7 @@ func CreateDirectoryR(ctx *task.Context, path string) error {
 
 // CreateFile creates a file.
 func CreateFile(ctx *task.Context, path string) (*os.File, error) {
-	ctx.Logf("create file: %s\n", path)
+	ctx.Logf("touch: %s\n", path)
 	f, err := os.Create(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating file %s: %v", path, err)
@@ -76,7 +119,7 @@ func CreateFile(ctx *task.Context, path string) (*os.File, error) {
 
 // CreateFileR creates a file ensuring all the directories are created recursively.
 func CreateFileR(ctx *task.Context, path string) (*os.File, error) {
-	ctx.Logf("create file recursive: %s\n", path)
+	ctx.Logf("touch -r: %s\n", path)
 	dir := filepath.Dir(path)
 
 	err := CreateDirectoryR(ctx, dir)
@@ -157,20 +200,81 @@ func IsFileEmpty(path string) (bool, error) {
 	return fi.Size() == 0, nil
 }
 
-// RemoveDirectory removes the directory.
-func RemoveDirectory(ctx *task.Context, path string) error {
-	ctx.Logf("remove directory: %s\n", path)
+// Move moves a file or directory.
+func Move(ctx *task.Context, fromPath, toPath string) error {
+	ctx.Logf("mv: %s -> %s\n", fromPath, toPath)
+	fromPath = filepath.Clean(fromPath)
+	toPath = filepath.Clean(toPath)
+
+	fi, err := os.Stat(fromPath)
+	if err != nil {
+		return err
+	}
+	if fi.IsDir() {
+		return moveDirectory(fromPath, toPath)
+	}
+
+	return moveFile(fromPath, toPath)
+}
+
+func moveDirectory(fromPath, toPath string) error {
+	err := filepath.Walk(fromPath, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		to := filepath.Join(toPath, strings.TrimPrefix(path, fromPath))
+
+		if fi.IsDir() {
+			if err = os.MkdirAll(to, fi.Mode()); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		return copyFile(path, to)
+	})
+	if err != nil {
+		return err
+	}
+
+	return removeDirectory(fromPath)
+}
+
+func moveFile(fromPath, toPath string) error {
+	err := copyFile(fromPath, toPath)
+	if err != nil {
+		return err
+	}
+
+	return removeFile(fromPath)
+}
+
+// Remove either removes a file or a directory recursively.
+func Remove(ctx *task.Context, path string) error {
+	ctx.Logf("rm: %s\n", path)
+
+	path = filepath.Clean(path)
+
 	fi, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if fi.IsDir() {
+		return removeDirectory(path)
+	}
+
+	return removeFile(path)
+}
+
+func removeDirectory(path string) error {
+	_, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
 
 		return err
-	}
-
-	if !fi.IsDir() {
-		return fmt.Errorf("%s is not a directory", path)
 	}
 
 	err = os.RemoveAll(path)
@@ -181,20 +285,14 @@ func RemoveDirectory(ctx *task.Context, path string) error {
 	return nil
 }
 
-// RemoveFile removes the file.
-func RemoveFile(ctx *task.Context, path string) error {
-	ctx.Logf("remove file: %s\n", path)
-	fi, err := os.Stat(path)
+func removeFile(path string) error {
+	_, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
 
 		return err
-	}
-
-	if fi.IsDir() {
-		return fmt.Errorf("%s is not a file", path)
 	}
 
 	err = os.Remove(path)

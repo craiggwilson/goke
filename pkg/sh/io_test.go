@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestCopyFile(t *testing.T) {
+func TestCopy_File(t *testing.T) {
 	ctx := makeTestContext()
 
 	tempDir, err := ioutil.TempDir("", "copyFile")
@@ -31,7 +31,7 @@ func TestCopyFile(t *testing.T) {
 	_ = fileA.Close()
 
 	fileBPath := filepath.Join(tempDir, "fileB")
-	err = sh.CopyFile(ctx, fileAPath, fileBPath)
+	err = sh.Copy(ctx, fileAPath, fileBPath)
 	if err != nil {
 		t.Fatalf("failed copying file: %v", err)
 	}
@@ -254,7 +254,7 @@ func TestIsFileEmpty(t *testing.T) {
 	}
 }
 
-func TestRemoveDirectory(t *testing.T) {
+func TestRemove_Directory(t *testing.T) {
 	ctx := makeTestContext()
 
 	tempDir, err := ioutil.TempDir("", "removeDirectory")
@@ -267,7 +267,7 @@ func TestRemoveDirectory(t *testing.T) {
 		t.Fatalf("failed ensuring directory exists: %v", err)
 	}
 
-	err = sh.RemoveDirectory(ctx, tempDir)
+	err = sh.Remove(ctx, tempDir)
 	if err != nil {
 		t.Fatalf("failed removing directory: %v", err)
 	}
@@ -277,7 +277,7 @@ func TestRemoveDirectory(t *testing.T) {
 	}
 }
 
-func TestRemoveFile(t *testing.T) {
+func TestRemove_File(t *testing.T) {
 	ctx := makeTestContext()
 
 	tempFile, err := ioutil.TempFile("", "removeFile")
@@ -291,7 +291,7 @@ func TestRemoveFile(t *testing.T) {
 		t.Fatalf("failed ensuring file exists: %v", err)
 	}
 
-	err = sh.RemoveFile(ctx, tempFile.Name())
+	err = sh.Remove(ctx, tempFile.Name())
 	if err != nil {
 		t.Fatalf("failed removing file: %v", err)
 	}

@@ -184,7 +184,7 @@ func Unarchive(ctx *task.Context, src, dest string) error {
 
 // UnarchiveTGZ decompresses the src tgz file into the destination.
 func UnarchiveTGZ(ctx *task.Context, src, dest string) error {
-	ctx.Logf("unzip: %s -> %s\n", src, dest)
+	ctx.Logf("untgz: %s -> %s\n", src, dest)
 
 	src, err := filepath.Abs(src)
 	if err != nil {
