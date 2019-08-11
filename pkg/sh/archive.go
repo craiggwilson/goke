@@ -227,6 +227,13 @@ func UnarchiveTGZ(ctx *task.Context, src, dest string) error {
 			continue
 		}
 
+		_, err = os.Stat(filepath.Dir(path))
+		if err != nil && os.IsNotExist(err) {
+			if err = os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+				return err
+			}
+		}
+
 		destFile, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, fi.Mode())
 		if err != nil {
 			return err
