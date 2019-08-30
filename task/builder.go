@@ -14,16 +14,21 @@ type Builder struct {
 }
 
 // Arg declares an argument for the task.
-func (b *Builder) Arg(a DeclaredTaskArg) *Builder {
-	b.task.declaredArgs = append(b.task.declaredArgs, a)
-	return b
+func (b *Builder) Arg(name string, validator ...Validator) *Builder {
+	if len(validator) != 0 {
+		b.task.declaredArgs = append(b.task.declaredArgs, DeclaredTaskArg{
+			Name:      name,
+			Validator: ChainValidator(validator...),
+		})
+	}
+	return b.OptionalArg(name)
 }
 
 // OptionalArg declares an optional argument for the task.
 func (b *Builder) OptionalArg(name string) *Builder {
 	b.task.declaredArgs = append(b.task.declaredArgs, DeclaredTaskArg{
-		Name:     name,
-		Required: false,
+		Name:      name,
+		Validator: Optional,
 	})
 	return b
 }
@@ -31,8 +36,8 @@ func (b *Builder) OptionalArg(name string) *Builder {
 // RequiredArg declares a required argument for the task.
 func (b *Builder) RequiredArg(name string) *Builder {
 	b.task.declaredArgs = append(b.task.declaredArgs, DeclaredTaskArg{
-		Name:     name,
-		Required: true,
+		Name:      name,
+		Validator: Required,
 	})
 	return b
 }
