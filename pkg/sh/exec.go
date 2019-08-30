@@ -51,7 +51,7 @@ func RunOutput(ctx *task.Context, name string, args ...string) (string, error) {
 // RunCmd runs the provided command.
 func RunCmd(ctx *task.Context, cmd *exec.Cmd) error {
 	LogCmd(ctx, cmd)
-	if cmd.Stdout == nil {
+	if ctx.Verbose && cmd.Stdout == nil {
 		cmd.Stdout = ctx
 	}
 	if cmd.Stderr == nil {
