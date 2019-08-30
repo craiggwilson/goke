@@ -151,7 +151,7 @@ func TestDirectoryExists(t *testing.T) {
 
 	exists, err := sh.DirectoryExists(tempDir)
 	if err != nil {
-		t.Fatalf("failed testing for directory existance: %v", err)
+		t.Fatalf("failed testing for directory existence: %v", err)
 	}
 
 	if !exists {
@@ -160,7 +160,7 @@ func TestDirectoryExists(t *testing.T) {
 
 	exists, err = sh.DirectoryExists(filepath.Join(tempDir, "noexisty"))
 	if err != nil {
-		t.Fatalf("failed testing for directory existance: %v", err)
+		t.Fatalf("failed testing for directory existence: %v", err)
 	}
 
 	if exists {
@@ -177,7 +177,7 @@ func TestFileExists(t *testing.T) {
 
 	exists, err := sh.FileExists(tempFile.Name())
 	if err != nil {
-		t.Fatalf("failed testing for directory existance: %v", err)
+		t.Fatalf("failed testing for directory existence: %v", err)
 	}
 
 	if !exists {
@@ -186,7 +186,7 @@ func TestFileExists(t *testing.T) {
 
 	exists, err = sh.FileExists(filepath.Join(tempFile.Name(), "noexisty"))
 	if err != nil {
-		t.Fatalf("failed testing for directory existance: %v", err)
+		t.Fatalf("failed testing for directory existence: %v", err)
 	}
 
 	if exists {
