@@ -12,6 +12,7 @@ type Task interface {
 
 // DeclaredTaskArg is an argument for a particular task.
 type DeclaredTaskArg struct {
-	Name     string
-	Required bool
+	Name      string
+	Required  bool
+	Validator func(string) error
 }
