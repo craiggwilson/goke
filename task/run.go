@@ -90,13 +90,12 @@ func argsForTask(task Task, args globalArgs) (map[string]string, error) {
 			v, ok = args.get("", da.Name)
 		}
 
+		if err := da.Validator(v); err != nil {
+			return nil, fmt.Errorf("failed to validate argument %q: %v", da.Name, err)
+		}
+
 		if ok {
-			if err := da.Validator(v); err != nil {
-				return nil, fmt.Errorf("failed to validate argument: %v", err)
-			}
 			taskArgs[da.Name] = v
-		} else if da.Required {
-			return nil, fmt.Errorf("task %q has a required argument %q that was not provided", task.Name(), da.Name)
 		}
 	}
 
