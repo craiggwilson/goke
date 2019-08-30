@@ -90,7 +90,7 @@ func argsForTask(task Task, args globalArgs) (map[string]string, error) {
 			v, ok = args.get("", da.Name)
 		}
 
-		if err := da.Validator(v); err != nil {
+		if err := da.Validator(da.Name, v); err != nil {
 			return nil, fmt.Errorf("failed to validate argument %q: %v", da.Name, err)
 		}
 
