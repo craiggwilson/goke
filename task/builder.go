@@ -20,6 +20,7 @@ func (b *Builder) Arg(name string, validator ...Validator) *Builder {
 			Name:      name,
 			Validator: ChainValidator(validator...),
 		})
+		return b
 	}
 	return b.OptionalArg(name)
 }
@@ -27,8 +28,7 @@ func (b *Builder) Arg(name string, validator ...Validator) *Builder {
 // OptionalArg declares an optional argument for the task.
 func (b *Builder) OptionalArg(name string) *Builder {
 	b.task.declaredArgs = append(b.task.declaredArgs, DeclaredTaskArg{
-		Name:      name,
-		Validator: Optional,
+		Name: name,
 	})
 	return b
 }
