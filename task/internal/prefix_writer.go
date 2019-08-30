@@ -1,6 +1,8 @@
 package internal
 
-import "io"
+import (
+	"io"
+)
 
 // NewPrefixWriter creates a PrefixWriter.
 func NewPrefixWriter(w io.Writer) *PrefixWriter {
