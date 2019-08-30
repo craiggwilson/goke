@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/mgutz/ansi"
-	"github.com/pkg/errors"
 
 	"github.com/craiggwilson/goke/task/internal"
 )
@@ -93,7 +92,7 @@ func argsForTask(task Task, args globalArgs) (map[string]string, error) {
 
 		if ok {
 			if err := da.Validator(v); err != nil {
-				return nil, errors.Wrap(err, "failed to validate argument")
+				return nil, fmt.Errorf("failed to validate argument: %v", err)
 			}
 			taskArgs[da.Name] = v
 		} else if da.Required {
