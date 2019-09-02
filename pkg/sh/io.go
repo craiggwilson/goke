@@ -138,6 +138,10 @@ func DirectoryExists(path string) (bool, error) {
 			return false, nil
 		}
 
+		if exists, err := DirectoryExists(filepath.Dir(path)); !exists || err != nil {
+			return false, err
+		}
+
 		return false, fmt.Errorf("failed statting path %s: %v", path, err)
 	}
 
@@ -150,6 +154,10 @@ func FileExists(path string) (bool, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
+		}
+
+		if exists, err := DirectoryExists(filepath.Dir(path)); !exists || err != nil {
+			return false, err
 		}
 
 		return false, fmt.Errorf("failed statting path %s: %v", path, err)
