@@ -20,7 +20,7 @@ func Run(registry *Registry, arguments []string) error {
 		return err
 	}
 
-	tasksToRun, err := sort(registry.tasks, opts.taskNames)
+	tasksToRun, err := sortTasksToRun(registry.Tasks(), opts.taskNames)
 	if err != nil {
 		return err
 	}

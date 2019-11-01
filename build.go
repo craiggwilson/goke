@@ -9,14 +9,14 @@ import (
 	"github.com/craiggwilson/goke/task"
 )
 
-var registry = task.NewRegistry()
+var registry = task.NewRegistry(task.WithAutoNamespaces(true))
 
 func init() {
 	registry.Declare("build").Description("build the goke build script").DependsOn("clean", "sa").Do(build.Build)
 	registry.Declare("clean").Description("cleans up the artifacts").Do(build.Clean)
-	registry.Declare("lint").Description("lint the packages").Do(build.Lint)
-	registry.Declare("fmt").Description("formats the packages").Do(build.Fmt)
-	registry.Declare("sa").Description("performs a static analysis").DependsOn("fmt", "lint")
+	registry.Declare("sa:lint").Description("lint the packages").Do(build.Lint)
+	registry.Declare("sa:fmt").Description("formats the packages").Do(build.Fmt)
+	registry.Declare("sa:sdf:dummy").Description("formats the packages").Do(build.Fmt)
 	registry.Declare("test").Description("runs tests in all the packages").Do(build.Test)
 }
 

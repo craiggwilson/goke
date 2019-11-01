@@ -9,7 +9,7 @@ func usage(fs *flag.FlagSet, registry *Registry) {
 	fmt.Println("USAGE: [tasks ...] [options ...]")
 	fmt.Println()
 	fmt.Println("TASKS:")
-	for _, t := range registry.tasks {
+	for _, t := range registry.Tasks() {
 		if t.Hidden() {
 			continue
 		}

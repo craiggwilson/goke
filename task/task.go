@@ -12,6 +12,12 @@ type Task interface {
 	Name() string
 }
 
+type sortedTasks []Task
+
+func (a sortedTasks) Len() int           { return len(a) }
+func (a sortedTasks) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a sortedTasks) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
+
 // Validator validates arguments.
 type Validator func(string, string) error
 

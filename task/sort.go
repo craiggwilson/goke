@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func sort(allTasks []Task, requiredTaskNames []string) ([]Task, error) {
+func sortTasksToRun(allTasks []Task, requiredTaskNames []string) ([]Task, error) {
 	graph, err := buildGraph(allTasks, requiredTaskNames)
 	if err != nil {
 		return nil, err
