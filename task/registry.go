@@ -46,11 +46,6 @@ type Registry struct {
 
 // Tasks returns all the tasks and pseudo-tasks.
 func (r *Registry) Tasks() []Task {
-	taskNS := func(t Task) string {
-		parts := strings.Split(t.Name(), r.nsSeparator)
-		return strings.Join(parts[:len(parts)-1], r.nsSeparator)
-	}
-
 	var collect func(string, *taskTree) []Task
 	collect = func(path string, tree *taskTree) []Task {
 		var tasks []Task
@@ -67,7 +62,7 @@ func (r *Registry) Tasks() []Task {
 		} else if r.autoNS && path != "" {
 			var deps []string
 			for _, d := range tasks {
-				if path == taskNS(d) {
+				if path == r.taskNamespace(d) {
 					deps = append(deps, d.Name())
 				}
 			}
@@ -122,6 +117,11 @@ func (r *Registry) Declare(name string) *Builder {
 	tb := build(name)
 	r.Register(tb.task)
 	return tb
+}
+
+func (r *Registry) taskNamespace(t Task) string {
+	parts := strings.Split(t.Name(), r.nsSeparator)
+	return strings.Join(parts[:len(parts)-1], r.nsSeparator)
 }
 
 type taskTree struct {

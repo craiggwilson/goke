@@ -1,39 +1,75 @@
 package task
 
 import (
+	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 )
 
 func usage(fs *flag.FlagSet, registry *Registry) {
-	fmt.Println("USAGE: [tasks ...] [options ...]")
-	fmt.Println()
-	fmt.Println("TASKS:")
-	for _, t := range registry.Tasks() {
+	var buf bytes.Buffer
+	usageTemp(fs, registry, 0, &buf)
+	rd := bufio.NewReader(&buf)
+	maxLine := 0
+	for {
+		line, _, err := rd.ReadLine()
+		if len(line) > maxLine {
+			maxLine = len(line)
+		}
+
+		if err != nil {
+			break
+		}
+	}
+
+	usageTemp(fs, registry, maxLine, os.Stdout)
+}
+
+func usageTemp(fs *flag.FlagSet, registry *Registry, longestLine int, out io.Writer) {
+	fmt.Fprintln(out, "USAGE: [tasks ...] [options ...]")
+	fmt.Fprintln(out)
+	fmt.Fprintln(out, "TASKS:")
+	currentNS := ""
+	for i, t := range registry.Tasks() {
 		if t.Hidden() {
 			continue
 		}
-		fmt.Print("  ", t.Name())
+		taskNS := registry.taskNamespace(t)
+		if taskNS == "" {
+			taskNS = t.Name()
+		}
+		if currentNS == "" || !strings.HasPrefix(taskNS, currentNS) {
+			if i != 0 {
+				fmt.Fprintln(out, "  "+strings.Repeat("-", longestLine))
+			}
+			currentNS = taskNS
+		}
+		fmt.Fprint(out, "  ", t.Name())
 		args := t.DeclaredArgs()
 		if len(args) > 0 {
-			fmt.Print("(")
+			fmt.Fprint(out, "(")
 			for i, a := range args {
-				fmt.Print(a.Name)
+				fmt.Fprint(out, a.Name)
 				if i < len(args)-1 {
-					fmt.Print(", ")
+					fmt.Fprint(out, ", ")
 				}
 			}
-			fmt.Print(")")
+			fmt.Fprint(out, ")")
 		}
 		if len(t.Dependencies()) > 0 {
-			fmt.Print(" -> ", t.Dependencies())
+			fmt.Fprint(out, " -> ", t.Dependencies())
 		}
-		fmt.Println()
+		fmt.Fprintln(out)
 		if t.Description() != "" {
-			fmt.Println("       ", t.Description())
+			fmt.Fprintln(out, "       ", t.Description())
 		}
 	}
-	fmt.Println()
-	fmt.Println("OPTIONS:")
+	fmt.Fprintln(out)
+	fmt.Fprintln(out, "OPTIONS:")
+	fs.SetOutput(out)
 	fs.PrintDefaults()
 }
