@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/mgutz/ansi"
 )
 
 func usage(fs *flag.FlagSet, registry *Registry) {
@@ -19,6 +21,9 @@ func usage(fs *flag.FlagSet, registry *Registry) {
 		line, _, err := rd.ReadLine()
 		if len(line) > maxLine {
 			maxLine = len(line)
+			if maxLine > 80 {
+				maxLine = 80
+			}
 		}
 
 		if err != nil {
@@ -30,9 +35,13 @@ func usage(fs *flag.FlagSet, registry *Registry) {
 }
 
 func usageTemp(fs *flag.FlagSet, registry *Registry, longestLine int, out io.Writer) {
-	fmt.Fprintln(out, "USAGE: [tasks ...] [options ...]")
+	cBright := ansi.ColorFunc("white+bh")
+	cDull := ansi.ColorFunc("black+bh")
+	cInfo := ansi.ColorFunc("cyan+b")
+
+	fmt.Fprintln(out, cBright("USAGE")+": [tasks ...] [options ...]")
 	fmt.Fprintln(out)
-	fmt.Fprintln(out, "TASKS:")
+	fmt.Fprintln(out, cBright("TASKS")+":")
 	currentNS := ""
 	for i, t := range registry.Tasks() {
 		if t.Hidden() {
@@ -44,11 +53,11 @@ func usageTemp(fs *flag.FlagSet, registry *Registry, longestLine int, out io.Wri
 		}
 		if currentNS == "" || !strings.HasPrefix(taskNS, currentNS) {
 			if i != 0 {
-				fmt.Fprintln(out, "  "+strings.Repeat("-", longestLine))
+				fmt.Fprintln(out, cDull("  "+strings.Repeat("-", longestLine)))
 			}
 			currentNS = taskNS
 		}
-		fmt.Fprint(out, "  ", t.Name())
+		fmt.Fprint(out, "  ", cInfo(t.Name()))
 		args := t.DeclaredArgs()
 		if len(args) > 0 {
 			fmt.Fprint(out, "(")
