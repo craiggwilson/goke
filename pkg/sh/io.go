@@ -41,7 +41,7 @@ func copyDirectory(fromPath, toPath string) error {
 			return err
 		}
 
-		to := filepath.Join(toPath, strings.TrimPrefix(fromPath, path))
+		to := filepath.Join(toPath, strings.TrimPrefix(path, fromPath))
 
 		if fi.IsDir() {
 			if err = os.MkdirAll(to, fi.Mode()); err != nil {
