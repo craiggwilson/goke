@@ -11,6 +11,7 @@ import (
 	"github.com/mgutz/ansi"
 
 	"github.com/craiggwilson/goke/task/internal"
+	"github.com/craiggwilson/goke/task/internal/flowwriter"
 )
 
 // Run orders the tasks be dependencies to build an execution plan and then executes each required task.
@@ -30,8 +31,16 @@ func Run(registry *Registry, arguments []string) error {
 		return err
 	}
 
-	writer := internal.NewPrefixWriter(os.Stdout)
+	flowWriter := flowwriter.New(
+		os.Stdout,
+		flowwriter.WrapAtColumn(140),
+		flowwriter.WithCutset(" "),
+		flowwriter.WithIndent([]byte("           ")),
+	)
+	prefixWriter := internal.NewPrefixWriter(flowWriter)
 	prefix := []byte("       | ")
+
+	writer := prefixWriter
 
 	totalStartTime := time.Now()
 
@@ -56,16 +65,16 @@ func Run(registry *Registry, arguments []string) error {
 		ctx.Verbose = opts.verbose
 
 		ctx.Logln(cInfo("START"), " |", cBright(t.Name()))
-		writer.SetPrefix(prefix)
+		prefixWriter.SetPrefix(prefix)
 
 		startTime := time.Now()
 		err = executor(ctx)
 		finishedTime := time.Now()
 
-		writer.SetPrefix(nil)
+		prefixWriter.SetPrefix(nil)
 		if err != nil {
 			ctx.Logln(cFail("FAIL"), "  |", cBright(t.Name()))
-			writer.SetPrefix(prefix)
+			prefixWriter.SetPrefix(prefix)
 			ctx.Logln(cBright(err.Error()))
 			return fmt.Errorf("task %q failed", t.Name())
 		}

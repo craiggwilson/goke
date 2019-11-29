@@ -7,8 +7,9 @@ import (
 // NewPrefixWriter creates a PrefixWriter.
 func NewPrefixWriter(w io.Writer) *PrefixWriter {
 	return &PrefixWriter{
-		w:  w,
-		nl: true,
+		w:   w,
+		nl:  true,
+		out: make([]byte, 1),
 	}
 }
 
@@ -18,6 +19,7 @@ type PrefixWriter struct {
 	w      io.Writer
 	prefix []byte
 	nl     bool
+	out    []byte
 }
 
 // SetPrefix sets the prefix.
@@ -35,7 +37,8 @@ func (w *PrefixWriter) Write(p []byte) (n int, err error) {
 			w.nl = false
 		}
 
-		_, err = w.w.Write([]byte{c})
+		w.out[0] = c
+		_, err = w.w.Write(w.out)
 		if err != nil {
 			return n, err
 		}
