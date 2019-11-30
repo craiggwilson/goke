@@ -39,6 +39,7 @@ func Run(registry *Registry, arguments []string) error {
 	cInfo := ansi.ColorFunc("cyan+b")
 	cFail := ansi.ColorFunc("red+b")
 	cSuccess := ansi.ColorFunc("green+b")
+	cTask := ansi.ColorFunc("yellow+b")
 
 	for _, t := range tasksToRun {
 		executor := t.Executor()
@@ -55,7 +56,7 @@ func Run(registry *Registry, arguments []string) error {
 		ctx := NewContext(context.Background(), writer, taskArgs)
 		ctx.Verbose = opts.verbose
 
-		ctx.Logln(cInfo("START"), " |", cBright(t.Name()))
+		ctx.Logln(cInfo("START"), " |", cTask(t.Name()))
 		writer.SetPrefix(prefix)
 
 		startTime := time.Now()
@@ -64,12 +65,12 @@ func Run(registry *Registry, arguments []string) error {
 
 		writer.SetPrefix(nil)
 		if err != nil {
-			ctx.Logln(cFail("FAIL"), "  |", cBright(t.Name()))
+			ctx.Logln(cFail("FAIL"), "  |", cTask(t.Name()), "in", finishedTime.Sub(startTime).String())
 			writer.SetPrefix(prefix)
 			ctx.Logln(cBright(err.Error()))
 			return fmt.Errorf("task %q failed", t.Name())
 		}
-		ctx.Logln(cSuccess("FINISH"), "|", cBright(fmt.Sprintf("%s in %v", t.Name(), finishedTime.Sub(startTime))))
+		ctx.Logln(cSuccess("FINISH"), "|", cTask(t.Name()), "in", finishedTime.Sub(startTime).String())
 	}
 
 	totalDuration := time.Now().Sub(totalStartTime)
