@@ -16,7 +16,6 @@ func init() {
 	registry.Declare("clean").Description("cleans up the artifacts").Do(build.Clean)
 	registry.Declare("sa:lint").Description("lint the packages").Do(build.Lint)
 	registry.Declare("sa:fmt").Description("formats the packages").Do(build.Fmt)
-	registry.Declare("sa:sdf:dummy").Description("formats the packages").Do(build.Fmt)
 	registry.Declare("test").Description("runs tests in all the packages").Do(build.Test)
 }
 

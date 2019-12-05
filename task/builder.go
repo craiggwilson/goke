@@ -42,6 +42,12 @@ func (b *Builder) RequiredArg(name string) *Builder {
 	return b
 }
 
+// ContinueOnError declares that a task should not stop the build from continuing.
+func (b *Builder) ContinueOnError() *Builder {
+	b.task.continueOnError = true
+	return b
+}
+
 // Description sets the description for the task.
 func (b *Builder) Description(description string) *Builder {
 	b.task.description = description
@@ -66,14 +72,18 @@ func (b *Builder) Hide() *Builder {
 }
 
 type declaredTask struct {
-	name         string
-	declaredArgs []DeclaredTaskArg
-	description  string
-	dependencies []string
-	executor     Executor
-	hidden       bool
+	name            string
+	continueOnError bool
+	declaredArgs    []DeclaredTaskArg
+	description     string
+	dependencies    []string
+	executor        Executor
+	hidden          bool
 }
 
+func (t *declaredTask) ContinueOnError() bool {
+	return t.continueOnError
+}
 func (t *declaredTask) DeclaredArgs() []DeclaredTaskArg {
 	return t.declaredArgs
 }

@@ -4,6 +4,7 @@ import "fmt"
 
 // Task represents a task to be executed
 type Task interface {
+	ContinueOnError() bool
 	DeclaredArgs() []DeclaredTaskArg
 	Dependencies() []string
 	Description() string

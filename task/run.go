@@ -41,6 +41,7 @@ func Run(registry *Registry, arguments []string) error {
 	cSuccess := ansi.ColorFunc("green+b")
 	cTask := ansi.ColorFunc("yellow+b")
 
+	var failedTasks []string
 	for _, t := range tasksToRun {
 		executor := t.Executor()
 		if executor == nil {
@@ -65,15 +66,24 @@ func Run(registry *Registry, arguments []string) error {
 
 		writer.SetPrefix(nil)
 		if err != nil {
+			failedTasks = append(failedTasks, t.Name())
 			ctx.Logln(cFail("FAIL"), "  |", cTask(t.Name()), "in", finishedTime.Sub(startTime).String())
 			writer.SetPrefix(prefix)
 			ctx.Logln(cBright(err.Error()))
-			return fmt.Errorf("task %q failed", t.Name())
+			writer.SetPrefix(nil)
+			if !t.ContinueOnError() {
+				break
+			}
+		} else {
+			ctx.Logln(cSuccess("FINISH"), "|", cTask(t.Name()), "in", finishedTime.Sub(startTime).String())
 		}
-		ctx.Logln(cSuccess("FINISH"), "|", cTask(t.Name()), "in", finishedTime.Sub(startTime).String())
 	}
 
-	totalDuration := time.Now().Sub(totalStartTime)
+	totalDuration := time.Since(totalStartTime)
+
+	if len(failedTasks) > 0 {
+		return fmt.Errorf("task(s) %s failed", failedTasks)
+	}
 
 	fmt.Fprintln(writer, "---------------")
 	fmt.Fprintln(writer, cSuccess(fmt.Sprint("Completed in ", totalDuration)))
@@ -161,19 +171,6 @@ func parseArgName(name string) (string, string) {
 	}
 
 	return parts[0], parts[1]
-}
-
-func parseRequiredTaskNames(arguments []string) []string {
-	var requiredTaskNames []string
-	for _, arg := range arguments {
-		if arg[0] == '-' || arg[0] == '/' {
-			break
-		}
-
-		requiredTaskNames = append(requiredTaskNames, arg)
-	}
-
-	return requiredTaskNames
 }
 
 type runOptions struct {

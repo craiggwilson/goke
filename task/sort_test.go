@@ -75,6 +75,10 @@ func TestToposort(t *testing.T) {
 
 type dummyTask string
 
+func (t dummyTask) ContinueOnError() bool {
+	return false
+}
+
 func (t dummyTask) DeclaredArgs() []DeclaredTaskArg {
 	return nil
 }
