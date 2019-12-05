@@ -33,12 +33,28 @@ func (b *Builder) OptionalArg(name string) *Builder {
 	return b
 }
 
+// OptionalArgs declares optional arguments for the task.
+func (b *Builder) OptionalArgs(names ...string) *Builder {
+	for _, name := range names {
+		b = b.OptionalArg(name)
+	}
+	return b
+}
+
 // RequiredArg declares a required argument for the task.
 func (b *Builder) RequiredArg(name string) *Builder {
 	b.task.declaredArgs = append(b.task.declaredArgs, DeclaredTaskArg{
 		Name:      name,
 		Validator: Required,
 	})
+	return b
+}
+
+// RequiredArgs declares required arguments for the task.
+func (b *Builder) RequiredArgs(names ...string) *Builder {
+	for _, name := range names {
+		b = b.RequiredArg(name)
+	}
 	return b
 }
 
