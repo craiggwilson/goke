@@ -7,6 +7,16 @@ import (
 	"github.com/craiggwilson/goke/task"
 )
 
+func Registry() *task.Registry {
+	registry := task.NewRegistry(task.WithAutoNamespaces(true))
+	registry.Declare("build").Description("build the goke build script").DependsOn("clean", "sa").Do(Build)
+	registry.Declare("clean").Description("cleans up the artifacts").Do(Clean)
+	registry.Declare("sa:lint").Description("lint the packages").Do(Lint)
+	registry.Declare("sa:fmt").Description("formats the packages").Do(Fmt)
+	registry.Declare("test").Description("runs tests in all the packages").Do(Test)
+	return registry
+}
+
 func Build(ctx *task.Context) error {
 	args := []string{"build", "-o", buildOutputFile}
 	if ctx.Verbose {

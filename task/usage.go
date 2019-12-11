@@ -8,13 +8,11 @@ import (
 	"io"
 	"os"
 	"strings"
-
-	"github.com/mgutz/ansi"
 )
 
-func usage(fs *flag.FlagSet, registry *Registry) {
+func usage(ui *TUI, fs *flag.FlagSet, registry *Registry) {
 	var buf bytes.Buffer
-	usageTemp(fs, registry, 0, &buf)
+	usageTemp(ui, fs, registry, 0, &buf)
 	rd := bufio.NewReader(&buf)
 	maxLine := 0
 	for {
@@ -31,17 +29,13 @@ func usage(fs *flag.FlagSet, registry *Registry) {
 		}
 	}
 
-	usageTemp(fs, registry, maxLine, os.Stdout)
+	usageTemp(ui, fs, registry, maxLine, os.Stdout)
 }
 
-func usageTemp(fs *flag.FlagSet, registry *Registry, longestLine int, out io.Writer) {
-	cBright := ansi.ColorFunc("white+bh")
-	cDull := ansi.ColorFunc("black+bh")
-	cInfo := ansi.ColorFunc("cyan+b")
-
-	fmt.Fprintln(out, cBright("USAGE")+": [tasks ...] [options ...]")
+func usageTemp(ui *TUI, fs *flag.FlagSet, registry *Registry, longestLine int, out io.Writer) {
+	fmt.Fprintln(out, ui.Highlight("USAGE")+": [tasks ...] [options ...]")
 	fmt.Fprintln(out)
-	fmt.Fprintln(out, cBright("TASKS")+":")
+	fmt.Fprintln(out, ui.Highlight("TASKS")+":")
 	currentNS := ""
 	for i, t := range registry.Tasks() {
 		if t.Hidden() {
@@ -53,11 +47,11 @@ func usageTemp(fs *flag.FlagSet, registry *Registry, longestLine int, out io.Wri
 		}
 		if currentNS == "" || !strings.HasPrefix(taskNS, currentNS) {
 			if i != 0 {
-				fmt.Fprintln(out, cDull("  "+strings.Repeat("-", longestLine)))
+				fmt.Fprintln(out, ui.Lowlight("  "+strings.Repeat("-", longestLine)))
 			}
 			currentNS = taskNS
 		}
-		fmt.Fprint(out, "  ", cInfo(t.Name()))
+		fmt.Fprint(out, "  ", ui.Info(t.Name()))
 		args := t.DeclaredArgs()
 		if len(args) > 0 {
 			fmt.Fprint(out, "(")

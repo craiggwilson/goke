@@ -8,9 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mgutz/ansi"
-
 	"github.com/craiggwilson/goke/task/internal"
+	"github.com/mattn/go-isatty"
 )
 
 // Run orders the tasks be dependencies to build an execution plan and then executes each required task.
@@ -20,26 +19,25 @@ func Run(registry *Registry, arguments []string) error {
 		return err
 	}
 
+	ui := newTUI(opts.color)
+
+	if opts.help {
+		return printHelp(ui, registry)
+	}
+
 	tasksToRun, err := sortTasksToRun(registry.Tasks(), opts.taskNames)
 	if err != nil {
 		return err
 	}
 
 	if len(tasksToRun) == 0 {
-		_, err = parseArgs(registry, append(arguments, "-h"))
-		return err
+		return printHelp(ui, registry)
 	}
 
 	writer := internal.NewPrefixWriter(os.Stdout)
 	prefix := []byte("       | ")
 
 	totalStartTime := time.Now()
-
-	cBright := ansi.ColorFunc("white+bh")
-	cInfo := ansi.ColorFunc("cyan+b")
-	cFail := ansi.ColorFunc("red+b")
-	cSuccess := ansi.ColorFunc("green+b")
-	cTask := ansi.ColorFunc("yellow+b")
 
 	var failedTasks []string
 	for _, t := range tasksToRun {
@@ -55,9 +53,10 @@ func Run(registry *Registry, arguments []string) error {
 		}
 
 		ctx := NewContext(context.Background(), writer, taskArgs)
+		ctx.UI = ui
 		ctx.Verbose = opts.verbose
 
-		ctx.Logln(cInfo("START"), " |", cTask(t.Name()))
+		ctx.Logln(ui.Info("START"), " |", ui.Highlight(t.Name()))
 		writer.SetPrefix(prefix)
 
 		startTime := time.Now()
@@ -67,15 +66,15 @@ func Run(registry *Registry, arguments []string) error {
 		writer.SetPrefix(nil)
 		if err != nil {
 			failedTasks = append(failedTasks, t.Name())
-			ctx.Logln(cFail("FAIL"), "  |", cTask(t.Name()), "in", finishedTime.Sub(startTime).String())
+			ctx.Logln(ui.Error("FAIL"), "  |", ui.Highlight(t.Name()), "in", finishedTime.Sub(startTime).String())
 			writer.SetPrefix(prefix)
-			ctx.Logln(cBright(err.Error()))
+			ctx.Logln(ui.Highlight(err.Error()))
 			writer.SetPrefix(nil)
 			if !t.ContinueOnError() {
 				break
 			}
 		} else {
-			ctx.Logln(cSuccess("FINISH"), "|", cTask(t.Name()), "in", finishedTime.Sub(startTime).String())
+			ctx.Logln(ui.Success("FINISH"), "|", ui.Highlight(t.Name()), "in", finishedTime.Sub(startTime).String())
 		}
 	}
 
@@ -86,7 +85,7 @@ func Run(registry *Registry, arguments []string) error {
 	}
 
 	fmt.Fprintln(writer, "---------------")
-	fmt.Fprintln(writer, cSuccess(fmt.Sprint("Completed in ", totalDuration)))
+	fmt.Fprintln(writer, ui.Success(fmt.Sprint("Completed in ", totalDuration)))
 
 	return nil
 }
@@ -137,16 +136,18 @@ func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
 	verboseArg, _ := args.get("", "verbose")
 	verbose := verboseArg == "true"
 	helpArg, _ := args.get("", "help")
-	if helpArg == "true" {
-		fs := flag.NewFlagSet("goke", flag.ContinueOnError)
-		_ = fs.Bool("v", false, "generate verbose logs")
-		usage(fs, registry)
-		return nil, flag.ErrHelp
+	help := helpArg == "true"
+
+	color := isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
+	if colorArg, ok := args.get("", "color"); ok && colorArg != "true" {
+		color = false
 	}
 
 	return &runOptions{
 		args:      args,
 		verbose:   verbose,
+		help:      help,
+		color:     color,
 		taskNames: requiredTaskNames,
 	}, nil
 }
@@ -173,9 +174,18 @@ func parseArgName(name string) (string, string) {
 	return parts[0], parts[1]
 }
 
+func printHelp(ui *TUI, registry *Registry) error {
+	fs := flag.NewFlagSet("goke", flag.ContinueOnError)
+	_ = fs.Bool("v", false, "generate verbose logs")
+	usage(ui, fs, registry)
+	return flag.ErrHelp
+}
+
 type runOptions struct {
 	args      globalArgs
 	verbose   bool
+	help      bool
+	color     bool
 	taskNames []string
 }
 
