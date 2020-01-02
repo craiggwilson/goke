@@ -66,7 +66,8 @@ func ArchiveTGZ(ctx *task.Context, src, dest string) error {
 			return err
 		}
 
-		if baseDir == path {
+		// If this 'file' is the same as the base directory we're traversing, ignore it.
+		if baseDir == path || fi.Name() == baseDir {
 			return nil
 		}
 
@@ -77,10 +78,6 @@ func ArchiveTGZ(ctx *task.Context, src, dest string) error {
 
 		if baseDir != "" {
 			header.Name, _ = filepath.Rel("/", strings.TrimPrefix(path, src))
-		}
-
-		if header.Name == "" {
-			return nil
 		}
 
 		if err = tw.WriteHeader(header); err != nil {
