@@ -79,6 +79,10 @@ func ArchiveTGZ(ctx *task.Context, src, dest string) error {
 			header.Name, _ = filepath.Rel("/", strings.TrimPrefix(path, src))
 		}
 
+		if header.Name == "" {
+			return nil
+		}
+
 		if err = tw.WriteHeader(header); err != nil {
 			return err
 		}
