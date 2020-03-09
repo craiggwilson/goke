@@ -2,7 +2,9 @@ package build
 
 import (
 	"os"
+	"os/exec"
 
+	"github.com/craiggwilson/goke/pkg/golang"
 	"github.com/craiggwilson/goke/pkg/sh"
 	"github.com/craiggwilson/goke/task"
 )
@@ -54,5 +56,10 @@ func Test(ctx *task.Context) error {
 		args = append(args, "-v")
 	}
 	args = append(args, packages...)
-	return sh.Run(ctx, "go", args...)
+
+	cmd := exec.CommandContext(ctx, "go", args...)
+	cmd.Stdout = golang.ColoredTestWriter(ctx)
+	cmd.Stderr = golang.ColoredTestWriter(ctx)
+
+	return sh.RunCmd(ctx, cmd)
 }
