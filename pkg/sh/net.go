@@ -69,8 +69,8 @@ func DownloadS3(ctx *task.Context, from S3Object, toPath string, profile string)
 	return err
 }
 
-// UploadFileToS3 reads the file at the provided path and uploads the contents to S3.
-func UploadFileToS3(ctx *task.Context, fromPath string, to S3Object, profile string) error {
+// UploadS3 reads the file at the provided path and uploads the contents to S3.
+func UploadS3(ctx *task.Context, fromPath string, to S3Object, profile string) error {
 	ctx.Logf("s3 upload: %s -> %s/%s\n", fromPath, to.Bucket, to.Key)
 
 	var f *os.File
