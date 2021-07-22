@@ -3,6 +3,7 @@ package sh
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -68,30 +69,33 @@ func DownloadS3(ctx *task.Context, from S3Object, toPath string, profile string)
 	return err
 }
 
-// UploadS3 uploads a file to S3.
-func UploadS3(ctx *task.Context, fromPath string, to S3Object, profile string) error {
+// UploadFileToS3 reads the file at the provided path and uploads the contents to S3.
+func UploadFileToS3(ctx *task.Context, fromPath string, to S3Object, profile string) error {
 	ctx.Logf("s3 upload: %s -> %s/%s\n", fromPath, to.Bucket, to.Key)
 
-	var err error
+	var f *os.File
+	f, err := os.Open(fromPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return UploadReaderToS3(ctx, f, to, profile)
+}
+
+// UploadReaderToS3 uploads the contents of the provided reader to S3.
+func UploadReaderToS3(ctx *task.Context, reader io.Reader, to S3Object, profile string) error {
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region:      aws.String(to.Region),
 		Credentials: s3Credentials(ctx, profile),
 	}))
 
 	uploader := s3manager.NewUploader(sess)
-	var f *os.File
-	f, err = os.Open(fromPath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = uploader.UploadWithContext(ctx, &s3manager.UploadInput{
+	_, err := uploader.UploadWithContext(ctx, &s3manager.UploadInput{
 		Bucket: aws.String(to.Bucket),
 		Key:    aws.String(to.Key),
-		Body:   f,
+		Body:   reader,
 	})
-
 	return err
 }
 
