@@ -69,6 +69,25 @@ func DownloadS3(ctx *task.Context, from S3Object, toPath string, profile string)
 	return err
 }
 
+// HeadS3 checks if an object exists on S3.
+func HeadS3(ctx *task.Context, from S3Object, profile string) error {
+	ctx.Logf("s3 check: %s/%s\n", from.Bucket, from.Key)
+
+	var err error
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region:      aws.String(from.Region),
+		Credentials: s3Credentials(ctx, profile),
+	}))
+
+	svc := s3.New(sess)
+	_, err = svc.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(from.Bucket),
+		Key:    aws.String(from.Key),
+	})
+
+	return err
+}
+
 // UploadS3 reads the file at the provided path and uploads the contents to S3.
 func UploadS3(ctx *task.Context, fromPath string, to S3Object, profile string) error {
 	ctx.Logf("s3 upload: %s -> %s/%s\n", fromPath, to.Bucket, to.Key)
