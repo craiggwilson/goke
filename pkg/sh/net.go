@@ -1,7 +1,6 @@
 package sh
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,8 +15,29 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
+const numHTTPRetries = 5
+
 // DownloadHTTP issues a GET request against the provided url and downloads the contents to the toPath.
+//
+// This method will retry HTTP requests that fail.
 func DownloadHTTP(ctx *task.Context, url string, toPath string) error {
+	var err error
+	for i := 0; i < numHTTPRetries; i++ {
+		// This is a very simplistic retry. Some HTTP response codes do not benefit
+		// from being retried, e.g. 4XX errors that are typically the client's
+		// fault. Additionally, some errors may occur before the HTTP request is
+		// even sent. Despite this, given the use-case for this package (i.e. not
+		// production codepaths), we opt for simplicity rather than error-prone
+		// case-checking of errors.
+		if err = downloadHTTP(ctx, url, toPath); err == nil {
+			return nil
+		}
+	}
+
+	return err
+}
+
+func downloadHTTP(ctx *task.Context, url string, toPath string) error {
 	ctx.Logf("download: %s -> %s\n", url, toPath)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
