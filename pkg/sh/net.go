@@ -28,9 +28,6 @@ func DownloadHTTP(ctx *task.Context, url string, toPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed issuing GET request: %v", err)
 	}
-	if res.Body == nil {
-		return errors.New("no body from the GET request")
-	}
 	defer res.Body.Close()
 
 	return copyTo(url, res.Body, toPath, 0666)
