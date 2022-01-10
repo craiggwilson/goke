@@ -59,7 +59,7 @@ func downloadHTTP(ctx *task.Context, url string, toPath string) error {
 			err = errors.New(buf.String())
 		}
 
-		return fmt.Errorf("got a non-200 response (%d) for GET: %w", res.StatusCode, err)
+		return fmt.Errorf("received non-200 response (%d) for GET: %w", res.StatusCode, err)
 	}
 
 	return copyTo(url, res.Body, toPath, 0666)
