@@ -25,7 +25,7 @@ const numHTTPRetries = 5
 func DownloadHTTP(ctx *task.Context, url string, toPath string) error {
 	var err error
 	for i := 0; i < numHTTPRetries; i++ {
-		ctx.Logf("attempting HTTP download\n")
+		ctx.Logf("attempting HTTP download (%d/%d)\n", i+1, numHTTPRetries)
 		// This is a very simplistic retry. Some HTTP response codes do not benefit
 		// from being retried, e.g. 4XX errors that are typically the client's
 		// fault. Additionally, some errors may occur before the HTTP request is
