@@ -1,10 +1,12 @@
 package sh
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/craiggwilson/goke/task"
 
@@ -50,6 +52,15 @@ func downloadHTTP(ctx *task.Context, url string, toPath string) error {
 		return fmt.Errorf("failed issuing GET request: %v", err)
 	}
 	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		buf := strings.Builder{}
+		_, err := io.Copy(&buf, res.Body)
+		if err == nil {
+			err = errors.New(buf.String())
+		}
+
+		return fmt.Errorf("got a non-200 response (%d) for GET: %w", res.StatusCode, err)
+	}
 
 	return copyTo(url, res.Body, toPath, 0666)
 }
