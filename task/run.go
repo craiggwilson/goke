@@ -42,6 +42,16 @@ func Run(registry *Registry, arguments []string) error {
 	writer := internal.NewPrefixWriter(&syncWriter{Writer: os.Stdout})
 	prefix := []byte("       | ")
 
+	unusedArgs := getUnusedArgs(tasksToRun, opts.args)
+	if len(unusedArgs) > 0 {
+		for _, unusedArg := range unusedArgs {
+			_, _ = fmt.Fprintln(writer, ui.Error("WARNING"), "unused argument", unusedArg)
+		}
+		if registry.shouldErrorOnUnusedArgs {
+			return fmt.Errorf("unused args")
+		}
+	}
+
 	totalStartTime := time.Now()
 
 	var failedTasks []string
@@ -155,6 +165,43 @@ func parseArgs(arguments []string) (*runOptions, error) {
 		color:     color,
 		taskNames: requiredTaskNames,
 	}, nil
+}
+
+func getUnusedArgs(tasks []Task, args globalArgs) []string {
+	var used = make(map[string]map[string]bool)
+
+	for ns, nsArgs := range args {
+		used[ns] = make(map[string]bool, len(nsArgs))
+		for arg := range nsArgs {
+			used[ns][arg] = false
+		}
+	}
+
+	for _, task := range tasks {
+		for _, da := range task.DeclaredArgs() {
+			if _, ok := args.get(task.Name(), da.Name); ok {
+				used[task.Name()][da.Name] = true
+			} else if _, ok = args.get("", da.Name); ok {
+				used[""][da.Name] = true
+			}
+		}
+	}
+
+	// Check to make sure that everything is used.
+	var unusedArgs []string
+	for ns, args := range used {
+		for arg, didUse := range args {
+			if !didUse {
+				if ns == "" {
+					unusedArgs = append(unusedArgs, arg)
+				} else {
+					unusedArgs = append(unusedArgs, fmt.Sprintf("%s:%s", ns, arg))
+				}
+			}
+		}
+	}
+
+	return unusedArgs
 }
 
 func parseArg(arg string) (string, string, string) {
