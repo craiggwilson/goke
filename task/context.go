@@ -60,3 +60,12 @@ func (ctx *Context) Logf(format string, v ...interface{}) {
 func (ctx *Context) Write(p []byte) (n int, err error) {
 	return ctx.w.Write(p)
 }
+
+// CopyArgs returns a copy of the current context's task arguments.
+func (ctx *Context) CopyArgs() map[string]string {
+	cpy := make(map[string]string, len(ctx.taskArgs))
+	for k, v := range ctx.taskArgs {
+		cpy[k] = v
+	}
+	return cpy
+}
