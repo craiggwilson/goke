@@ -76,6 +76,11 @@ func Run(registry *Registry, arguments []string) error {
 
 		startTime := time.Now()
 		err = executor(ctx)
+		if err == nil || t.FinalizeOnError() {
+			for _, finalizer := range t.Finalizers() {
+				finalizer(ctx)
+			}
+		}
 		finishedTime := time.Now()
 
 		writer.SetPrefix(nil)

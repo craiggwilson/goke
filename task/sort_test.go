@@ -98,3 +98,9 @@ func (t dummyTask) Hidden() bool {
 func (t dummyTask) Name() string {
 	return string(t)
 }
+func (t dummyTask) FinalizeOnError() bool {
+	return true
+}
+func (t dummyTask) Finalizers() []Executor {
+	return nil
+}

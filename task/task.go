@@ -9,6 +9,8 @@ type Task interface {
 	Dependencies() []string
 	Description() string
 	Executor() Executor
+	FinalizeOnError() bool
+	Finalizers() []Executor
 	Hidden() bool
 	Name() string
 }

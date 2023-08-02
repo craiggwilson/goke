@@ -3,7 +3,8 @@ package task
 // build begins building a task.
 func build(name string) *Builder {
 	task := &declaredTask{
-		name: name,
+		name:            name,
+		finalizeOnError: true,
 	}
 	return &Builder{task: task}
 }
@@ -87,6 +88,18 @@ func (b *Builder) Hide() *Builder {
 	return b
 }
 
+// SkipFinallyOnError declares that finalizers should not run if there were errors.
+func (b *Builder) SkipFinallyOnError() *Builder {
+	b.task.finalizeOnError = false
+	return b
+}
+
+// Finally declares executors to be run after the main task executor is finished.
+func (b *Builder) Finally(executors ...Executor) *Builder {
+	b.task.finalizers = executors
+	return b
+}
+
 type declaredTask struct {
 	declaredArgs    []DeclaredTaskArg
 	dependencies    []string
@@ -95,6 +108,8 @@ type declaredTask struct {
 	executor        Executor
 	continueOnError bool
 	hidden          bool
+	finalizeOnError bool
+	finalizers      []Executor
 }
 
 func (t *declaredTask) ContinueOnError() bool {
@@ -117,4 +132,10 @@ func (t *declaredTask) Executor() Executor {
 }
 func (t *declaredTask) Name() string {
 	return t.name
+}
+func (t *declaredTask) FinalizeOnError() bool {
+	return t.finalizeOnError
+}
+func (t *declaredTask) Finalizers() []Executor {
+	return t.finalizers
 }
