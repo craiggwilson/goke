@@ -12,6 +12,9 @@ func TestTaskWithFinalizer(t *testing.T) {
 		finalizedCount++
 		return nil
 	}
+	finalizerWithError := func(ctx *Context) error {
+		return errors.New("uh oh...")
+	}
 
 	testCases := []struct {
 		finalizers             []Executor
@@ -29,6 +32,8 @@ func TestTaskWithFinalizer(t *testing.T) {
 		{[]Executor{finalizer}, true, true, 1},
 		// SkipFinallyOnError should prevent finalizer execution if task had error
 		{[]Executor{finalizer}, true, false, 0},
+		// Error in finalizer
+		{[]Executor{finalizerWithError}, false, true, 0},
 	}
 
 	for _, tc := range testCases {
@@ -45,9 +50,28 @@ func TestTaskWithFinalizer(t *testing.T) {
 			return nil
 		})
 
-		Run(registry, []string{"foo"})
+		err := Run(registry, []string{"foo"})
+		if tc.taskError && err == nil {
+			t.Error("Expected an error")
+		} else if !tc.taskError && err != nil {
+			t.Error("Expected no error")
+		}
 		if finalizedCount != tc.expectedFinalizedCount {
 			t.Errorf("Expected %d finalizer(s) to run but got %d", tc.expectedFinalizedCount, finalizedCount)
 		}
+	}
+}
+
+func TestShouldExitOnAggregateTaskWithFinalizer(t *testing.T) {
+	doNothing := func(ctx *Context) error {
+		return nil
+	}
+	registry := NewRegistry()
+	registry.Declare("actual_task").Do(doNothing)
+	registry.Declare("aggregate_task").DependsOn("first_task").Finally(doNothing)
+
+	err := Run(registry, []string{"aggregate_task"})
+	if err == nil {
+		t.Error("Expected error")
 	}
 }

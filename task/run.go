@@ -40,12 +40,12 @@ func Run(registry *Registry, arguments []string) error {
 	}
 
 	writer := internal.NewPrefixWriter(&syncWriter{Writer: os.Stdout})
-	prefix := []byte("       | ")
+	prefix := []byte("        | ")
 
 	unusedArgs := getUnusedArgs(tasksToRun, opts.args)
 	if len(unusedArgs) > 0 {
 		for _, unusedArg := range unusedArgs {
-			_, _ = fmt.Fprintln(writer, ui.Error("WARNING"), "unused argument", unusedArg)
+			_, _ = fmt.Fprintln(writer, ui.Warning("WARNING"), "|", "unused argument", unusedArg)
 		}
 		if registry.shouldErrorOnUnusedArgs {
 			return fmt.Errorf("unused args")
@@ -71,14 +71,19 @@ func Run(registry *Registry, arguments []string) error {
 		ctx.UI = ui
 		ctx.Verbose = opts.verbose
 
-		ctx.Logln(ui.Info("START"), " |", ui.Highlight(t.Name()))
+		ctx.Logln(ui.Info("START"), "  |", ui.Highlight(t.Name()))
 		writer.SetPrefix(prefix)
 
 		startTime := time.Now()
 		err = executor(ctx)
 		if err == nil || t.FinalizeOnError() {
 			for _, finalizer := range t.Finalizers() {
-				finalizer(ctx)
+				err := finalizer(ctx)
+				if err != nil {
+					writer.SetPrefix(nil)
+					ctx.Logln(ui.Warning("WARNING"), "|", "Error during finalization:", err.Error())
+					writer.SetPrefix(prefix)
+				}
 			}
 		}
 		finishedTime := time.Now()
@@ -86,7 +91,7 @@ func Run(registry *Registry, arguments []string) error {
 		writer.SetPrefix(nil)
 		if err != nil {
 			failedTasks = append(failedTasks, t.Name())
-			ctx.Logln(ui.Error("FAIL"), "  |", ui.Highlight(t.Name()), "in", finishedTime.Sub(startTime).String())
+			ctx.Logln(ui.Error("FAIL"), "   |", ui.Highlight(t.Name()), "in", finishedTime.Sub(startTime).String())
 			writer.SetPrefix(prefix)
 			ctx.Logln(ui.Highlight(err.Error()))
 			writer.SetPrefix(nil)
@@ -94,7 +99,7 @@ func Run(registry *Registry, arguments []string) error {
 				break
 			}
 		} else {
-			ctx.Logln(ui.Success("FINISH"), "|", ui.Highlight(t.Name()), "in", finishedTime.Sub(startTime).String())
+			ctx.Logln(ui.Success("FINISH"), " |", ui.Highlight(t.Name()), "in", finishedTime.Sub(startTime).String())
 		}
 	}
 

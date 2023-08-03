@@ -23,6 +23,9 @@ func buildGraph(allTasks []Task, requiredTaskNames []string) ([]*graphNode, erro
 	allTasksMap := make(map[string]Task)
 	for _, t := range allTasks {
 		allTasksMap[strings.ToLower(t.Name())] = t
+		if t.Executor() == nil && len(t.Finalizers()) > 0 {
+			return nil, fmt.Errorf("finalization not allowed for aggregate task '%s'", t.Name())
+		}
 	}
 
 	var g []*graphNode
