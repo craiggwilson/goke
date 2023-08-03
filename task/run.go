@@ -78,8 +78,7 @@ func Run(registry *Registry, arguments []string) error {
 		err = executor(ctx)
 		if err == nil || t.FinalizeOnError() {
 			for _, finalizer := range t.Finalizers() {
-				err := finalizer(ctx)
-				if err != nil {
+				if err := finalizer(ctx); err != nil {
 					writer.SetPrefix(nil)
 					ctx.Logln(ui.Warning("WARNING"), "|", "Error during finalization:", err.Error())
 					writer.SetPrefix(prefix)

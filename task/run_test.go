@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestTaskWithFinalizer(t *testing.T) {
+func TestTaskWithFinally(t *testing.T) {
 	finalizedCount := 0
 
 	finalizer := func(ctx *Context) error {
@@ -13,7 +13,7 @@ func TestTaskWithFinalizer(t *testing.T) {
 		return nil
 	}
 	finalizerWithError := func(ctx *Context) error {
-		return errors.New("uh oh...")
+		return errors.New("uh oh")
 	}
 
 	testCases := []struct {
@@ -32,7 +32,7 @@ func TestTaskWithFinalizer(t *testing.T) {
 		{[]Executor{finalizer}, true, true, 1},
 		// SkipFinallyOnError should prevent finalizer execution if task had error
 		{[]Executor{finalizer}, true, false, 0},
-		// Error in finalizer
+		// Error in finalizer should not affect task success
 		{[]Executor{finalizerWithError}, false, true, 0},
 	}
 
@@ -52,26 +52,27 @@ func TestTaskWithFinalizer(t *testing.T) {
 
 		err := Run(registry, []string{"foo"})
 		if tc.taskError && err == nil {
-			t.Error("Expected an error")
+			t.Error("expected an error")
 		} else if !tc.taskError && err != nil {
-			t.Error("Expected no error")
+			t.Error("expected no error")
 		}
 		if finalizedCount != tc.expectedFinalizedCount {
-			t.Errorf("Expected %d finalizer(s) to run but got %d", tc.expectedFinalizedCount, finalizedCount)
+			t.Errorf("expected %d finalizer(s) to run but got %d", tc.expectedFinalizedCount, finalizedCount)
 		}
 	}
 }
 
 func TestShouldExitOnAggregateTaskWithFinalizer(t *testing.T) {
-	doNothing := func(ctx *Context) error {
-		return nil
+	shouldNeverRun := func(ctx *Context) error {
+		return errors.New("task or finalizer ran")
 	}
 	registry := NewRegistry()
-	registry.Declare("actual_task").Do(doNothing)
-	registry.Declare("aggregate_task").DependsOn("first_task").Finally(doNothing)
+	registry.Declare("actual_task").Do(shouldNeverRun)
+	registry.Declare("aggregate_task").DependsOn("actual_task").Finally(shouldNeverRun)
 
-	err := Run(registry, []string{"aggregate_task"})
-	if err == nil {
-		t.Error("Expected error")
+	if err := Run(registry, []string{"aggregate_task"}); err == nil {
+		t.Error("expected an error")
+	} else if err.Error() == "task(s) [actual_task] failed" {
+		t.Error("task should not have been executed")
 	}
 }

@@ -23,6 +23,7 @@ func buildGraph(allTasks []Task, requiredTaskNames []string) ([]*graphNode, erro
 	allTasksMap := make(map[string]Task)
 	for _, t := range allTasks {
 		allTasksMap[strings.ToLower(t.Name())] = t
+		// aggregate tasks which don't perform any work themselves should not have finalizers
 		if t.Executor() == nil && len(t.Finalizers()) > 0 {
 			return nil, fmt.Errorf("finalization not allowed for aggregate task '%s'", t.Name())
 		}
