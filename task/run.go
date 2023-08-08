@@ -55,6 +55,7 @@ func Run(registry *Registry, arguments []string) error {
 	totalStartTime := time.Now()
 
 	var failedTasks []string
+	var finallyTaskNames []string
 	for _, t := range tasksToRun {
 		executor := t.Executor()
 		if executor == nil {
@@ -66,6 +67,8 @@ func Run(registry *Registry, arguments []string) error {
 		if err != nil {
 			return err
 		}
+
+		finallyTaskNames = append(t.Finally(), finallyTaskNames...)
 
 		ctx := NewContext(context.Background(), writer, taskArgs)
 		ctx.UI = ui
@@ -91,6 +94,31 @@ func Run(registry *Registry, arguments []string) error {
 		} else {
 			ctx.Logln(ui.Success("FINISH"), "|", ui.Highlight(t.Name()), "in", finishedTime.Sub(startTime).String())
 		}
+	}
+
+	if finallyTasks, err := sortTasksToRun(registry.Tasks(), finallyTaskNames); err == nil && len(finallyTasks) > 0 {
+		ctx := NewContext(context.Background(), writer, nil)
+		ctx.UI = ui
+		ctx.Verbose = opts.verbose
+		ctx.Logln(ui.Info("START"), " |", ui.Highlight("finalizing tasks"))
+		writer.SetPrefix(prefix)
+		startTime := time.Now()
+		for _, task := range finallyTasks {
+			if task.Executor() != nil {
+				if err := task.Executor()(ctx); err != nil {
+					writer.SetPrefix(nil)
+					ctx.Logln(ui.Warning("WARN"), "  |", ui.Highlight(task.Name()), "encountered error:", err.Error())
+					writer.SetPrefix(prefix)
+				} else {
+					ctx.Logln(ui.Highlight(task.Name()))
+				}
+			}
+		}
+		writer.SetPrefix(nil)
+		ctx.Logln(ui.Success("FINISH"), "|", ui.Highlight("finalizing tasks"), "in", time.Since(startTime).String())
+	} else if err != nil {
+		// this should not happen since we verify each task
+		fmt.Fprintln(writer, ui.Error("WARNING"), "Building finalizing task list failed:", err.Error())
 	}
 
 	totalDuration := time.Since(totalStartTime)
