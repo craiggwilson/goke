@@ -5,6 +5,14 @@ import (
 	"strings"
 )
 
+type state = uint8
+
+const (
+	unvalidated state = iota
+	validating
+	valid
+)
+
 func sortTasksToRun(allTasks []Task, requiredTaskNames []string) ([]Task, error) {
 	graph, err := buildGraph(allTasks, requiredTaskNames)
 	if err != nil {
@@ -27,7 +35,7 @@ func buildGraph(allTasks []Task, requiredTaskNames []string) ([]*graphNode, erro
 
 	var g []*graphNode
 	seenTasks := make(map[string]struct{})
-	seenFinallyTasks := make(map[string]int)
+	finallyTaskStates := make(map[string]state)
 	for len(requiredTaskNames) > 0 {
 		taskName := requiredTaskNames[0]
 		requiredTaskNames = requiredTaskNames[1:]
@@ -39,9 +47,10 @@ func buildGraph(allTasks []Task, requiredTaskNames []string) ([]*graphNode, erro
 
 		if _, ok := seenTasks[task.Name()]; !ok {
 			seenTasks[task.Name()] = struct{}{}
-			if err := validateFinallyClause(allTasksMap, seenFinallyTasks, task); err != nil {
+			if err := validateFinallyTasks(allTasksMap, finallyTaskStates, task.Finally()); err != nil {
 				return nil, err
 			}
+			// toposort can
 			g = append(g, &graphNode{task: task, edges: append([]string{}, task.Dependencies()...)})
 
 			requiredTaskNames = append(requiredTaskNames, task.Dependencies()...)
@@ -91,17 +100,10 @@ func toposort(g []*graphNode) ([]Task, error) {
 	return sorted, nil
 }
 
-func validateFinallyClause(allTasksMap map[string]Task, seenFinallyTasks map[string]int, task Task) error {
-	if len(task.Finally()) > 0 && task.Executor() == nil {
-		return fmt.Errorf("task '%s' without executor cannot use Finally", task.Name())
-	}
-	return validateFinallyTasks(allTasksMap, seenFinallyTasks, task.Finally()...)
-}
-
-func validateFinallyTasks(allTasksMap map[string]Task, seenFinallyTasks map[string]int, finallyTaskNames ...string) error {
+func validateFinallyTasks(allTasksMap map[string]Task, finallyTaskStates map[string]state, finallyTaskNames []string) error {
 	for _, taskName := range finallyTaskNames {
-		if seenFinallyTasks[taskName] == 0 {
-			seenFinallyTasks[taskName] = -1
+		if finallyTaskStates[taskName] == unvalidated {
+			finallyTaskStates[taskName] = validating
 			task, ok := allTasksMap[strings.ToLower(taskName)]
 			if !ok {
 				return fmt.Errorf("unknown task '%s'", taskName)
@@ -109,11 +111,11 @@ func validateFinallyTasks(allTasksMap map[string]Task, seenFinallyTasks map[stri
 			if len(task.Finally()) > 0 || hasNonOptionalArg(task) {
 				return fmt.Errorf("'%s' not allowed in Finally", taskName)
 			}
-			if err := validateFinallyTasks(allTasksMap, seenFinallyTasks, task.Dependencies()...); err != nil {
+			if err := validateFinallyTasks(allTasksMap, finallyTaskStates, task.Dependencies()); err != nil {
 				return err
 			}
-			seenFinallyTasks[taskName] = 1
-		} else if seenFinallyTasks[taskName] == -1 {
+			finallyTaskStates[taskName] = valid
+		} else if finallyTaskStates[taskName] == validating {
 			return fmt.Errorf("Finally cycle detected")
 		}
 	}
