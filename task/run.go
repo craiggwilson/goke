@@ -60,6 +60,7 @@ func Run(registry *Registry, arguments []string) error {
 		executor := t.Executor()
 		if executor == nil {
 			// this task is just an aggregate task
+			finallyTaskNames = append(t.Finally(), finallyTaskNames...)
 			continue
 		}
 
@@ -107,17 +108,17 @@ func Run(registry *Registry, arguments []string) error {
 			if task.Executor() != nil {
 				if err := task.Executor()(ctx); err != nil {
 					writer.SetPrefix(nil)
-					ctx.Logln(ui.Warning("WARN"), "  |", ui.Highlight(task.Name()), "encountered error:", err.Error())
+					ctx.Logln(ui.Warning("WARN"), "  |", ui.Highlight(task.Name()), "failed:", err.Error())
 					writer.SetPrefix(prefix)
 				} else {
-					ctx.Logln(ui.Highlight(task.Name()))
+					ctx.Logln(ui.Highlight(task.Name()), "finished")
 				}
 			}
 		}
 		writer.SetPrefix(nil)
 		ctx.Logln(ui.Success("FINISH"), "|", ui.Highlight("finalizing tasks"), "in", time.Since(startTime).String())
 	} else if err != nil {
-		// this should not happen since we verify each task
+		// should not happen since Finally() tasks are validated when building the primary task list
 		fmt.Fprintln(writer, ui.Error("WARNING"), "Building finalizing task list failed:", err.Error())
 	}
 

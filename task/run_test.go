@@ -54,26 +54,17 @@ func TestFinally(t *testing.T) {
 	dummy := []string{}
 	reg := NewRegistry()
 
-	// Finally() allows simple tasks and aggregates thereof
+	// Finally() allows most tasks...
 	declare(reg, "ok1", false)
 	declare(reg, "ok2", false)
 	declare(reg, "err", true)
 	declare(reg, "dep", false).DependsOn("ok1", "ok2")
+	reg.Declare("agg").DependsOn("ok1", "ok2")
 
-	// Finally() does *not* allow tasks which
-	// - have required arguments
+	// ...unless they have required arguments, use Finally() themselves or depend on such a task
 	declare(reg, "requiredArg", false).RequiredArg("foo")
-	// - use Finally() themselves
 	declare(reg, "hasFinally", false).Finally("ok1")
-	// - have dependencies that are not allowed
 	declare(reg, "dependsOnNotAllowed", false).DependsOn("requiredArg")
-
-	t.Run("NotAllowedInPureAggregates", func(t *testing.T) {
-		reg.Declare("t0").DependsOn("ok1", "ok2").Finally("ok1")
-		runTests(t, reg, false, []testTaskCfg{
-			{"t0", dummy, false, true, dummy},
-		})
-	})
 
 	t.Run("ShouldRunOnTaskSuccess", func(t *testing.T) {
 		runTests(t, reg, true, []testTaskCfg{
@@ -85,7 +76,7 @@ func TestFinally(t *testing.T) {
 
 	t.Run("ShouldRunOnTaskFailure", func(t *testing.T) {
 		runTests(t, reg, true, []testTaskCfg{
-			{"t4", []string{"ok1"}, true, true, []string{"t4", "ok1"}},
+			{"t4", []string{"agg"}, true, true, []string{"t4", "ok1", "ok2"}},
 			{"t5", []string{"ok1", "ok2"}, true, true, []string{"t5", "ok1", "ok2"}},
 		})
 	})
