@@ -70,6 +70,9 @@ func usageTemp(ui *TUI, fs *flag.FlagSet, registry *Registry, longestLine int, o
 		if t.Description() != "" {
 			fmt.Fprintln(out, "       ", t.Description())
 		}
+		if len(t.Finally()) > 0 {
+			fmt.Fprintln(out, "       ", ui.Highlight("finally"), "->", t.Finally())
+		}
 	}
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "OPTIONS:")
