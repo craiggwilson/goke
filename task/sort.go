@@ -108,7 +108,7 @@ func validateDeferredTasks(allTasksMap map[string]Task, deferredTaskStates map[s
 			if !ok {
 				return fmt.Errorf("unknown task '%s'", taskName)
 			}
-			if len(task.DeferredTasks()) > 0 || hasNonOptionalArg(task) {
+			if len(task.DeferredTasks()) > 0 {
 				return fmt.Errorf("'%s' cannot be deferred", taskName)
 			}
 			if err := validateDeferredTasks(allTasksMap, deferredTaskStates, task.Dependencies()); err != nil {
@@ -120,13 +120,4 @@ func validateDeferredTasks(allTasksMap map[string]Task, deferredTaskStates map[s
 		}
 	}
 	return nil
-}
-
-func hasNonOptionalArg(task Task) bool {
-	for _, arg := range task.DeclaredArgs() {
-		if arg.Validator != nil {
-			return true
-		}
-	}
-	return false
 }

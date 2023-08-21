@@ -71,9 +71,7 @@ func Run(registry *Registry, arguments []string) error {
 
 		deferredTaskNames = append(t.DeferredTasks(), deferredTaskNames...)
 
-		ctx := NewContext(context.Background(), writer, taskArgs)
-		ctx.UI = ui
-		ctx.Verbose = opts.verbose
+		ctx := NewContext(context.Background(), writer, taskArgs, WithUI(ui), WithVerbose(opts.verbose))
 
 		ctx.Logln(ui.Info("START"), " |", ui.Highlight(t.Name()))
 		writer.SetPrefix(prefix)
@@ -98,14 +96,19 @@ func Run(registry *Registry, arguments []string) error {
 	}
 
 	if deferredTasks, err := sortTasksToRun(registry.Tasks(), deferredTaskNames); err == nil && len(deferredTasks) > 0 {
-		ctx := NewContext(context.Background(), writer, nil)
-		ctx.UI = ui
-		ctx.Verbose = opts.verbose
-		ctx.Logln(ui.Info("START"), " |", ui.Highlight("run deferred tasks"))
+		fmt.Fprintln(writer, ui.Info("START"), " |", ui.Highlight("run deferred tasks"))
 		writer.SetPrefix(prefix)
 		startTime := time.Now()
 		for _, task := range deferredTasks {
 			if executor := task.Executor(); executor != nil {
+				taskArgs, err := argsForTask(task, opts.args)
+				if err != nil {
+					writer.SetPrefix(nil)
+					fmt.Fprintln(writer, ui.Warning("WARN"), "  |", ui.Highlight(task.Name()), "skipped:", err.Error())
+					writer.SetPrefix(prefix)
+					continue
+				}
+				ctx := NewContext(context.Background(), writer, taskArgs, WithUI(ui), WithVerbose(opts.verbose))
 				if err := executor(ctx); err != nil {
 					writer.SetPrefix(nil)
 					ctx.Logln(ui.Warning("WARN"), "  |", ui.Highlight(task.Name()), "failed:", err.Error())
@@ -116,7 +119,7 @@ func Run(registry *Registry, arguments []string) error {
 			}
 		}
 		writer.SetPrefix(nil)
-		ctx.Logln(ui.Success("FINISH"), "|", ui.Highlight("run deferred tasks"), "in", time.Since(startTime).String())
+		fmt.Fprintln(writer, ui.Success("FINISH"), "|", ui.Highlight("run deferred tasks"), "in", time.Since(startTime).String())
 	} else if err != nil {
 		// should not happen since deferred tasks are validated when building the primary task list
 		fmt.Fprintln(writer, ui.Error("WARNING"), "Building deferred task list failed:", err.Error())

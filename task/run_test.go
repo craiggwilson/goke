@@ -54,17 +54,17 @@ func TestDefer(t *testing.T) {
 	dummy := []string{}
 	reg := NewRegistry()
 
-	// Defer() allows most tasks...
+	// Defer() allows most *almost* any task...
 	declare(reg, "ok1", false)
 	declare(reg, "ok2", false)
 	declare(reg, "err", true)
 	declare(reg, "dep", false).DependsOn("ok1", "ok2")
+	declare(reg, "requiredArg", false).RequiredArg("foo")
 	reg.Declare("agg").DependsOn("ok1", "ok2")
 
-	// ...unless they have required arguments, use Defer() themselves or depend on such a task
-	declare(reg, "requiredArg", false).RequiredArg("foo")
+	// ...unless they use Defer() themselves or depend on such a task
 	declare(reg, "hasDefer", false).Defer("ok1")
-	declare(reg, "dependsOnNotAllowed", false).DependsOn("requiredArg")
+	declare(reg, "dependsOnHasDefer", false).DependsOn("hasDefer")
 
 	t.Run("ShouldRunOnTaskSuccess", func(t *testing.T) {
 		runTests(t, reg, true, []testTaskCfg{
@@ -84,14 +84,15 @@ func TestDefer(t *testing.T) {
 	t.Run("ShouldIgnoreErrorsInDefer", func(t *testing.T) {
 		runTests(t, reg, true, []testTaskCfg{
 			{"t6", []string{"err", "ok1"}, false, false, []string{"t6", "err", "ok1"}},
+			// if a deferred task is missing a required argument, it should *not* execute
+			{"t7", []string{"requiredArg", "ok1"}, false, false, []string{"t7", "ok1"}},
 		})
 	})
 
 	t.Run("ShouldErrorIfMisconfigured", func(t *testing.T) {
 		runTests(t, reg, true, []testTaskCfg{
-			{"t7", []string{"requiredArg"}, false, true, dummy},
 			{"t8", []string{"hasDefer"}, false, true, dummy},
-			{"t9", []string{"dependsOnNotAllowed"}, false, true, dummy},
+			{"t9", []string{"dependsOnHasDefer"}, false, true, dummy},
 			{"t10", []string{"doesNotExist"}, false, true, dummy},
 		})
 	})

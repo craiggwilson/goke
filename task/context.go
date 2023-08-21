@@ -8,11 +8,29 @@ import (
 )
 
 // NewContext makes a new Context.
-func NewContext(ctx context.Context, w io.Writer, taskArgs map[string]string) *Context {
-	return &Context{
+func NewContext(ctx context.Context, w io.Writer, taskArgs map[string]string, params ...ContextParam) *Context {
+	c := &Context{
 		Context:  ctx,
 		w:        w,
 		taskArgs: taskArgs,
+	}
+	for _, param := range params {
+		param(c)
+	}
+	return c
+}
+
+type ContextParam = func(ctx *Context)
+
+func WithVerbose(verbose bool) ContextParam {
+	return func(ctx *Context) {
+		ctx.Verbose = verbose
+	}
+}
+
+func WithUI(ui *TUI) ContextParam {
+	return func(ctx *Context) {
+		ctx.UI = ui
 	}
 }
 
