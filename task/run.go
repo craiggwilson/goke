@@ -55,12 +55,12 @@ func Run(registry *Registry, arguments []string) error {
 	totalStartTime := time.Now()
 
 	var failedTasks []string
-	var finallyTaskNames []string
+	var deferredTaskNames []string
 	for _, t := range tasksToRun {
 		executor := t.Executor()
 		if executor == nil {
 			// this task is just an aggregate task
-			finallyTaskNames = append(t.Finally(), finallyTaskNames...)
+			deferredTaskNames = append(t.DeferredTasks(), deferredTaskNames...)
 			continue
 		}
 
@@ -69,7 +69,7 @@ func Run(registry *Registry, arguments []string) error {
 			return err
 		}
 
-		finallyTaskNames = append(t.Finally(), finallyTaskNames...)
+		deferredTaskNames = append(t.DeferredTasks(), deferredTaskNames...)
 
 		ctx := NewContext(context.Background(), writer, taskArgs)
 		ctx.UI = ui
@@ -97,16 +97,16 @@ func Run(registry *Registry, arguments []string) error {
 		}
 	}
 
-	if finallyTasks, err := sortTasksToRun(registry.Tasks(), finallyTaskNames); err == nil && len(finallyTasks) > 0 {
+	if deferredTasks, err := sortTasksToRun(registry.Tasks(), deferredTaskNames); err == nil && len(deferredTasks) > 0 {
 		ctx := NewContext(context.Background(), writer, nil)
 		ctx.UI = ui
 		ctx.Verbose = opts.verbose
-		ctx.Logln(ui.Info("START"), " |", ui.Highlight("finalizing tasks"))
+		ctx.Logln(ui.Info("START"), " |", ui.Highlight("run deferred tasks"))
 		writer.SetPrefix(prefix)
 		startTime := time.Now()
-		for _, task := range finallyTasks {
-			if task.Executor() != nil {
-				if err := task.Executor()(ctx); err != nil {
+		for _, task := range deferredTasks {
+			if executor := task.Executor(); executor != nil {
+				if err := executor(ctx); err != nil {
 					writer.SetPrefix(nil)
 					ctx.Logln(ui.Warning("WARN"), "  |", ui.Highlight(task.Name()), "failed:", err.Error())
 					writer.SetPrefix(prefix)
@@ -116,10 +116,10 @@ func Run(registry *Registry, arguments []string) error {
 			}
 		}
 		writer.SetPrefix(nil)
-		ctx.Logln(ui.Success("FINISH"), "|", ui.Highlight("finalizing tasks"), "in", time.Since(startTime).String())
+		ctx.Logln(ui.Success("FINISH"), "|", ui.Highlight("run deferred tasks"), "in", time.Since(startTime).String())
 	} else if err != nil {
-		// should not happen since Finally() tasks are validated when building the primary task list
-		fmt.Fprintln(writer, ui.Error("WARNING"), "Building finalizing task list failed:", err.Error())
+		// should not happen since deferred tasks are validated when building the primary task list
+		fmt.Fprintln(writer, ui.Error("WARNING"), "Building deferred task list failed:", err.Error())
 	}
 
 	totalDuration := time.Since(totalStartTime)

@@ -87,9 +87,9 @@ func (b *Builder) Hide() *Builder {
 	return b
 }
 
-// Finally declares other tasks that should run after this one.
-func (b *Builder) Finally(names ...string) *Builder {
-	b.task.finally = names
+// Defer declares other tasks that should run after this one.
+func (b *Builder) Defer(names ...string) *Builder {
+	b.task.deferredTasks = names
 	return b
 }
 
@@ -101,7 +101,7 @@ type declaredTask struct {
 	executor        Executor
 	continueOnError bool
 	hidden          bool
-	finally         []string
+	deferredTasks   []string
 }
 
 func (t *declaredTask) ContinueOnError() bool {
@@ -125,6 +125,6 @@ func (t *declaredTask) Executor() Executor {
 func (t *declaredTask) Name() string {
 	return t.name
 }
-func (t *declaredTask) Finally() []string {
-	return t.finally
+func (t *declaredTask) DeferredTasks() []string {
+	return t.deferredTasks
 }

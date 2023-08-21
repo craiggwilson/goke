@@ -11,7 +11,7 @@ type Task interface {
 	Executor() Executor
 	Hidden() bool
 	Name() string
-	Finally() []string
+	DeferredTasks() []string
 }
 
 type sortedTasks []Task

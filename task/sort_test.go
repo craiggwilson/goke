@@ -98,6 +98,6 @@ func (t dummyTask) Hidden() bool {
 func (t dummyTask) Name() string {
 	return string(t)
 }
-func (t dummyTask) Finally() []string {
+func (t dummyTask) DeferredTasks() []string {
 	return nil
 }

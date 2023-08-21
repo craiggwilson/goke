@@ -26,7 +26,7 @@ func declare(registry *Registry, name string, shouldError bool) *Builder {
 
 type testTaskCfg struct {
 	name             string
-	finally          []string
+	deferredTasks    []string
 	shouldError      bool
 	shouldFailRun    bool
 	expectedRunOrder []string
@@ -36,7 +36,7 @@ func runTests(t *testing.T, registry *Registry, declareTasks bool, testCases []t
 	for _, tc := range testCases {
 		runOrder = []string{}
 		if declareTasks {
-			declare(registry, tc.name, tc.shouldError).Finally(tc.finally...)
+			declare(registry, tc.name, tc.shouldError).Defer(tc.deferredTasks...)
 		}
 		err := Run(registry, []string{tc.name})
 		if err == nil && tc.shouldFailRun {
@@ -50,20 +50,20 @@ func runTests(t *testing.T, registry *Registry, declareTasks bool, testCases []t
 	}
 }
 
-func TestFinally(t *testing.T) {
+func TestDefer(t *testing.T) {
 	dummy := []string{}
 	reg := NewRegistry()
 
-	// Finally() allows most tasks...
+	// Defer() allows most tasks...
 	declare(reg, "ok1", false)
 	declare(reg, "ok2", false)
 	declare(reg, "err", true)
 	declare(reg, "dep", false).DependsOn("ok1", "ok2")
 	reg.Declare("agg").DependsOn("ok1", "ok2")
 
-	// ...unless they have required arguments, use Finally() themselves or depend on such a task
+	// ...unless they have required arguments, use Defer() themselves or depend on such a task
 	declare(reg, "requiredArg", false).RequiredArg("foo")
-	declare(reg, "hasFinally", false).Finally("ok1")
+	declare(reg, "hasDefer", false).Defer("ok1")
 	declare(reg, "dependsOnNotAllowed", false).DependsOn("requiredArg")
 
 	t.Run("ShouldRunOnTaskSuccess", func(t *testing.T) {
@@ -81,7 +81,7 @@ func TestFinally(t *testing.T) {
 		})
 	})
 
-	t.Run("ShouldIgnoreErrorsInFinally", func(t *testing.T) {
+	t.Run("ShouldIgnoreErrorsInDefer", func(t *testing.T) {
 		runTests(t, reg, true, []testTaskCfg{
 			{"t6", []string{"err", "ok1"}, false, false, []string{"t6", "err", "ok1"}},
 		})
@@ -90,17 +90,17 @@ func TestFinally(t *testing.T) {
 	t.Run("ShouldErrorIfMisconfigured", func(t *testing.T) {
 		runTests(t, reg, true, []testTaskCfg{
 			{"t7", []string{"requiredArg"}, false, true, dummy},
-			{"t8", []string{"hasFinally"}, false, true, dummy},
+			{"t8", []string{"hasDefer"}, false, true, dummy},
 			{"t9", []string{"dependsOnNotAllowed"}, false, true, dummy},
 			{"t10", []string{"doesNotExist"}, false, true, dummy},
 		})
 	})
 
 	t.Run("ShouldReverseFinalizeDependencies", func(t *testing.T) {
-		declare(reg, "t11", false).DependsOn("t1", "t2").Finally("err")
-		declare(reg, "t12", true).DependsOn("t1", "t2").Finally("dep")
-		declare(reg, "t13", false).DependsOn("t11").Finally("ok1")
-		declare(reg, "t14", false).DependsOn("t12").Finally("ok1")
+		declare(reg, "t11", false).DependsOn("t1", "t2").Defer("err")
+		declare(reg, "t12", true).DependsOn("t1", "t2").Defer("dep")
+		declare(reg, "t13", false).DependsOn("t11").Defer("ok1")
+		declare(reg, "t14", false).DependsOn("t12").Defer("ok1")
 
 		runTests(t, reg, false, []testTaskCfg{
 			{"t11", dummy, false, false, []string{"t1", "t2", "t11", "err", "ok1", "ok2"}},
