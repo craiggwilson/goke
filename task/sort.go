@@ -35,7 +35,7 @@ func buildGraph(allTasks []Task, requiredTaskNames []string) ([]*graphNode, erro
 
 	var g []*graphNode
 	seenTasks := make(map[string]struct{})
-	finallyTaskStates := make(map[string]state)
+	deferredTaskStates := make(map[string]state)
 	for len(requiredTaskNames) > 0 {
 		taskName := requiredTaskNames[0]
 		requiredTaskNames = requiredTaskNames[1:]
@@ -47,10 +47,10 @@ func buildGraph(allTasks []Task, requiredTaskNames []string) ([]*graphNode, erro
 
 		if _, ok := seenTasks[task.Name()]; !ok {
 			seenTasks[task.Name()] = struct{}{}
-			if err := validateFinallyTasks(allTasksMap, finallyTaskStates, task.Finally()); err != nil {
+			if err := validateDeferredTasks(allTasksMap, deferredTaskStates, task.DeferredTasks()); err != nil {
 				return nil, err
 			}
-			// toposort can
+			// toposort modifies edges, copying task dependencies here avoids inadvertent changes to the task object itself
 			g = append(g, &graphNode{task: task, edges: append([]string{}, task.Dependencies()...)})
 
 			requiredTaskNames = append(requiredTaskNames, task.Dependencies()...)
@@ -100,23 +100,23 @@ func toposort(g []*graphNode) ([]Task, error) {
 	return sorted, nil
 }
 
-func validateFinallyTasks(allTasksMap map[string]Task, finallyTaskStates map[string]state, finallyTaskNames []string) error {
-	for _, taskName := range finallyTaskNames {
-		if finallyTaskStates[taskName] == unvalidated {
-			finallyTaskStates[taskName] = validating
+func validateDeferredTasks(allTasksMap map[string]Task, deferredTaskStates map[string]state, deferredTaskNames []string) error {
+	for _, taskName := range deferredTaskNames {
+		if deferredTaskStates[taskName] == unvalidated {
+			deferredTaskStates[taskName] = validating
 			task, ok := allTasksMap[strings.ToLower(taskName)]
 			if !ok {
 				return fmt.Errorf("unknown task '%s'", taskName)
 			}
-			if len(task.Finally()) > 0 || hasNonOptionalArg(task) {
-				return fmt.Errorf("'%s' not allowed in Finally", taskName)
+			if len(task.DeferredTasks()) > 0 || hasNonOptionalArg(task) {
+				return fmt.Errorf("'%s' cannot be deferred", taskName)
 			}
-			if err := validateFinallyTasks(allTasksMap, finallyTaskStates, task.Dependencies()); err != nil {
+			if err := validateDeferredTasks(allTasksMap, deferredTaskStates, task.Dependencies()); err != nil {
 				return err
 			}
-			finallyTaskStates[taskName] = valid
-		} else if finallyTaskStates[taskName] == validating {
-			return fmt.Errorf("Finally cycle detected")
+			deferredTaskStates[taskName] = valid
+		} else if deferredTaskStates[taskName] == validating {
+			return fmt.Errorf("deferred task cycle detected")
 		}
 	}
 	return nil
