@@ -24,6 +24,137 @@ func Run(registry *Registry, arguments []string) error {
 		return err
 	}
 
+	if _, ok := opts.args.get("", "json"); ok {
+		return runWithJSONOutput(registry, opts)
+	}
+
+	return runWithHumanOutput(registry, opts)
+}
+
+func runWithJSONOutput(registry *Registry, opts *runOptions) error {
+	tasksToRun, err := sortTasksToRun(registry.Tasks(), opts.taskNames)
+	if err != nil {
+		return err
+	}
+
+	if len(tasksToRun) == 0 {
+		return nil
+	}
+
+	logger := internal.NewJSONLogger(&syncWriter{Writer: os.Stdout})
+
+	totalStartTime := time.Now()
+
+	unusedArgs := getUnusedArgs(tasksToRun, opts.args)
+	if len(unusedArgs) > 0 {
+		for _, unusedArg := range unusedArgs {
+			logger.Logln("unused arguments", map[string]string{
+				"level":     "WARNING",
+				"unusedArg": unusedArg,
+			})
+		}
+		if registry.shouldErrorOnUnusedArgs {
+			return fmt.Errorf("unused args")
+		}
+	}
+
+	var failedTasks []string
+	var deferredTaskNames []string
+	for _, t := range tasksToRun {
+		executor := t.Executor()
+		if executor == nil {
+			// this task is just an aggregate task
+			deferredTaskNames = append(t.DeferredTasks(), deferredTaskNames...)
+			continue
+		}
+
+		taskArgs, err := argsForTask(t, opts.args)
+		if err != nil {
+			return err
+		}
+
+		deferredTaskNames = append(t.DeferredTasks(), deferredTaskNames...)
+
+		startTime := time.Now()
+
+		logger.Logln("START", map[string]string{
+			"startTime": startTime.UTC().String(),
+		})
+
+		ctx := NewContext(context.Background(), logger, taskArgs, WithVerbose(opts.verbose))
+
+		err = executor(ctx)
+		finishedTime := time.Now()
+
+		if err != nil {
+			failedTasks = append(failedTasks, t.Name())
+			logger.Logln("FAIL", map[string]string{
+				"elapsed": finishedTime.Sub(startTime).String(),
+				"task":    t.Name(),
+				"error":   err.Error(),
+			})
+
+			if !t.ContinueOnError() {
+				break
+			}
+		} else {
+			logger.Logln("FINISH", map[string]string{
+				"elapsed": finishedTime.Sub(startTime).String(),
+			})
+		}
+	}
+
+	if deferredTasks, err := sortTasksToRun(registry.Tasks(), deferredTaskNames); err == nil && len(deferredTasks) > 0 {
+		logger.Logln("START deferred", map[string]string{})
+		startTime := time.Now()
+
+		for _, task := range deferredTasks {
+			if executor := task.Executor(); executor != nil {
+				taskArgs, err := argsForTask(task, opts.args)
+				if err != nil {
+					logger.Logln("failed collecting args for task", map[string]string{
+						"task":  task.Name(),
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ctx := NewContext(context.Background(), logger, taskArgs, WithVerbose(opts.verbose))
+				if err := executor(ctx); err != nil {
+					logger.Logln("failed executing task", map[string]string{
+						"task":  task.Name(),
+						"error": err.Error(),
+					})
+				} else {
+					logger.Logln("finished task", map[string]string{
+						"task": task.Name(),
+					})
+				}
+			}
+		}
+		logger.Logln("FINISH deferred", map[string]string{
+			"elapsed": time.Since(startTime).String(),
+		})
+	} else if err != nil {
+		// Should not happen since deferred tasks are validated when building the primary task list.
+		logger.Logln("building deferred task list failed", map[string]string{
+			"error": err.Error(),
+		})
+	}
+
+	if len(failedTasks) > 0 {
+		return fmt.Errorf("task(s) %s failed", failedTasks)
+	}
+
+	totalDuration := time.Since(totalStartTime)
+	logger.Logln("complete", map[string]string{
+		"totalDuration": totalDuration.String(),
+	})
+
+	return nil
+}
+
+func runWithHumanOutput(registry *Registry, opts *runOptions) error {
 	ui := newTUI(opts.color)
 
 	if opts.help {
