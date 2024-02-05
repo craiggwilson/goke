@@ -36,12 +36,14 @@ func runWithJSONOutput(registry *Registry, opts *runOptions) error {
 	if err != nil {
 		return err
 	}
+	logger := internal.NewJSONLogger(&syncWriter{Writer: os.Stdout})
 
 	if len(tasksToRun) == 0 {
+		logger.Logln("no tasks to run", map[string]string{
+			"level": "WARNING",
+		})
 		return nil
 	}
-
-	logger := internal.NewJSONLogger(&syncWriter{Writer: os.Stdout})
 
 	totalStartTime := time.Now()
 
@@ -77,8 +79,9 @@ func runWithJSONOutput(registry *Registry, opts *runOptions) error {
 
 		startTime := time.Now()
 
-		logger.Logln("START", map[string]string{
+		logger.Logln("starting task", map[string]string{
 			"startTime": startTime.UTC().String(),
+			"task":      t.Name(),
 		})
 
 		ctx := NewContext(context.Background(), logger, taskArgs, WithVerbose(opts.verbose))
@@ -88,24 +91,27 @@ func runWithJSONOutput(registry *Registry, opts *runOptions) error {
 
 		if err != nil {
 			failedTasks = append(failedTasks, t.Name())
-			logger.Logln("FAIL", map[string]string{
+			logger.Logln("finished task", map[string]string{
 				"elapsed": finishedTime.Sub(startTime).String(),
 				"task":    t.Name(),
 				"error":   err.Error(),
+				"result":  "FAIL",
 			})
 
 			if !t.ContinueOnError() {
 				break
 			}
 		} else {
-			logger.Logln("FINISH", map[string]string{
+			logger.Logln("finished task", map[string]string{
 				"elapsed": finishedTime.Sub(startTime).String(),
+				"task":    t.Name(),
+				"result":  "SUCCESS",
 			})
 		}
 	}
 
 	if deferredTasks, err := sortTasksToRun(registry.Tasks(), deferredTaskNames); err == nil && len(deferredTasks) > 0 {
-		logger.Logln("START deferred", map[string]string{})
+		logger.Logln("starting deferred task", map[string]string{})
 		startTime := time.Now()
 
 		for _, task := range deferredTasks {
@@ -121,18 +127,20 @@ func runWithJSONOutput(registry *Registry, opts *runOptions) error {
 
 				ctx := NewContext(context.Background(), logger, taskArgs, WithVerbose(opts.verbose))
 				if err := executor(ctx); err != nil {
-					logger.Logln("failed executing task", map[string]string{
-						"task":  task.Name(),
-						"error": err.Error(),
+					logger.Logln("finished deferred task", map[string]string{
+						"task":   task.Name(),
+						"error":  err.Error(),
+						"result": "FAIL",
 					})
 				} else {
-					logger.Logln("finished task", map[string]string{
-						"task": task.Name(),
+					logger.Logln("finished deferred task", map[string]string{
+						"task":   task.Name(),
+						"result": "SUCCESS",
 					})
 				}
 			}
 		}
-		logger.Logln("FINISH deferred", map[string]string{
+		logger.Logln("deferred tasked finished", map[string]string{
 			"elapsed": time.Since(startTime).String(),
 		})
 	} else if err != nil {
@@ -147,7 +155,7 @@ func runWithJSONOutput(registry *Registry, opts *runOptions) error {
 	}
 
 	totalDuration := time.Since(totalStartTime)
-	logger.Logln("complete", map[string]string{
+	logger.Logln("run complete", map[string]string{
 		"totalDuration": totalDuration.String(),
 	})
 
